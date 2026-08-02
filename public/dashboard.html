@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard General - Tienda CVS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-wrapper">
+        <header id="global-header" class="global-header"></header>
+
+        <main class="main-content">
+            <div class="page-title-bar">
+                <div>
+                    <h1>📊 Dashboard General - Tienda CVS</h1>
+                    <p class="subtitle">Panel ejecutivo de control de ventas, inventario y rendimiento comercial</p>
+                </div>
+                <div class="action-buttons-group">
+                    <a href="ventas.html" class="btn btn-primary">⚡ Abrir Caja POS</a>
+                    <a href="entradas.html" class="btn btn-secondary">📥 Surtir Mercancía</a>
+                </div>
+            </div>
+
+            <!-- KPI Cards Grid -->
+            <div class="kpi-grid">
+                <div class="kpi-card card-blue content-box">
+                    <div class="kpi-icon">📦</div>
+                    <div class="kpi-data">
+                        <span class="kpi-title">Total Productos</span>
+                        <h2 class="kpi-value" id="total-productos">0</h2>
+                        <span class="kpi-subtext">Catálogo activo</span>
+                    </div>
+                </div>
+
+                <div class="kpi-card card-warning content-box" id="card-alertas">
+                    <div class="kpi-icon">⚠️</div>
+                    <div class="kpi-data">
+                        <span class="kpi-title">Stock Bajo / Agotado</span>
+                        <h2 class="kpi-value" id="stock-bajo">0</h2>
+                        <span class="kpi-subtext">Requieren reabastecer</span>
+                    </div>
+                </div>
+
+                <div class="kpi-card card-purple content-box">
+                    <div class="kpi-icon">💎</div>
+                    <div class="kpi-data">
+                        <span class="kpi-title">Valor del Inventario</span>
+                        <h2 class="kpi-value" id="valor-inventario">$0.00</h2>
+                        <span class="kpi-subtext">Costo total en tienda</span>
+                    </div>
+                </div>
+
+                <div class="kpi-card card-emerald content-box">
+                    <div class="kpi-icon">🛒</div>
+                    <div class="kpi-data">
+                        <span class="kpi-title">Ventas de Hoy</span>
+                        <h2 class="kpi-value" id="ventas-hoy">$0.00</h2>
+                        <span class="kpi-subtext" id="num-ventas-hoy">0 transacciones</span>
+                    </div>
+                </div>
+
+                <div class="kpi-card card-indigo content-box">
+                    <div class="kpi-icon">📈</div>
+                    <div class="kpi-data">
+                        <span class="kpi-title">Ventas del Mes</span>
+                        <h2 class="kpi-value" id="ventas-mes">$0.00</h2>
+                        <span class="kpi-subtext" id="num-ventas-mes">Acumulado mensual</span>
+                    </div>
+                    <button class="btn btn-sm btn-primary kpi-card-btn" onclick="descargarPDFVentasMes()">
+                        📄 PDF
+                    </button>
+                </div>
+
+                <div class="kpi-card card-slate content-box">
+                    <div class="kpi-icon">💵</div>
+                    <div class="kpi-data">
+                        <span class="kpi-title">Estado de Caja</span>
+                        <h2 class="kpi-value" id="corte-estado">Cerrado</h2>
+                        <span class="kpi-subtext" id="corte-subtext">Turno actual</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Dashboard Layout -->
+            <div class="dashboard-grid-layout">
+                <!-- Column 1 -->
+                <div class="dash-col">
+                    <!-- Low Stock Alerts -->
+                    <div class="content-box">
+                        <div class="box-header">
+                            <h2>⚠️ Alertas de Reabastecimiento</h2>
+                            <a href="entradas.html" class="link-action">Registrar Entrada ➔</a>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Producto</th>
+                                        <th>Stock Actual</th>
+                                        <th>Mínimo</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="alertas-body">
+                                    <tr><td colspan="5" class="text-center">Cargando alertas...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Top Selling Products -->
+                    <div class="content-box">
+                        <div class="box-header">
+                            <h2>🏆 Productos Más Vendidos (Top 10)</h2>
+                            <span class="badge badge-info">Histórico</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Código</th>
+                                        <th>Unidades Vendidas</th>
+                                        <th>Ingreso Generado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="productos-vendidos-body">
+                                    <tr><td colspan="4" class="text-center">Cargando productos...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Column 2 -->
+                <div class="dash-col">
+                    <!-- Sales by Payment Method -->
+                    <div class="content-box">
+                        <div class="box-header">
+                            <h2>💳 Ventas por Método de Pago (Últimos 30 días)</h2>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Método</th>
+                                        <th>N° Ventas</th>
+                                        <th>Monto Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="metodos-pago-body">
+                                    <tr><td colspan="3" class="text-center">Cargando métodos...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Quick Links & Actions -->
+                    <div class="content-box highlight-box">
+                        <div class="box-header">
+                            <h2>⚡ Accesos Rápidos Tienda CVS</h2>
+                        </div>
+                        <div class="quick-actions-grid">
+                            <a href="ventas.html" class="quick-action-card">
+                                <span class="qa-icon">🛍️</span>
+                                <div>
+                                    <h4>Punto de Venta</h4>
+                                    <p>Realizar cobranza rápida</p>
+                                </div>
+                            </a>
+                            <a href="entradas.html" class="quick-action-card">
+                                <span class="qa-icon">📥</span>
+                                <div>
+                                    <h4>Añadir Mercancía</h4>
+                                    <p>Surtir stock o nuevo producto</p>
+                                </div>
+                            </a>
+                            <a href="inventario.html" class="quick-action-card">
+                                <span class="qa-icon">📦</span>
+                                <div>
+                                    <h4>Ver Inventario</h4>
+                                    <p>Consultar stock en existencia</p>
+                                </div>
+                            </a>
+                            <a href="cortes.html" class="quick-action-card">
+                                <span class="qa-icon">💵</span>
+                                <div>
+                                    <h4>Corte de Caja</h4>
+                                    <p>Apertura y cierre de turno</p>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

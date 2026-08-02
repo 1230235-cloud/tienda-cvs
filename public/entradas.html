@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entradas de Mercancía - Tienda CVS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-wrapper">
+        <header id="global-header" class="global-header"></header>
+
+        <main class="main-content">
+            <div class="page-title-bar">
+                <div>
+                    <h1>📥 Entradas de Mercancía - Tienda CVS</h1>
+                    <p class="subtitle">Registra el reabastecimiento de productos o agrega nuevos artículos al catálogo de la tienda</p>
+                </div>
+                <div class="tab-toggle-buttons">
+                    <button class="btn tab-btn active" id="tab-btn-surtir" onclick="switchEntradaTab('surtir')">
+                        📦 Surtir Producto Existente
+                    </button>
+                    <button class="btn tab-btn" id="tab-btn-nuevo" onclick="switchEntradaTab('nuevo')">
+                        ✨ Registrar Producto Nuevo
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 1: SURTIR STOCK EXISTENTE -->
+            <div id="tab-content-surtir" class="tab-pane active">
+                <div class="entradas-layout">
+                    <!-- Left column: Product Selection -->
+                    <div class="entradas-left-card content-box">
+                        <div class="box-header">
+                            <h3>🔍 Seleccionar Producto</h3>
+                            <span class="text-muted">Haz clic para agregar a la entrada</span>
+                        </div>
+                        
+                        <div class="search-section">
+                            <input type="text" id="buscar-producto-entrada" class="search-input" placeholder="🔍 Buscar por código de barras o nombre...">
+                            <button id="btn-regresar-busqueda" class="btn btn-secondary" onclick="regresarBusqueda()" style="display: none;">
+                                ← Regresar
+                            </button>
+                        </div>
+
+                        <div class="productos-grid" id="productos-grid">
+                            <p class="text-center text-muted">Cargando catálogo...</p>
+                        </div>
+                    </div>
+
+                    <!-- Right column: Entry Cart -->
+                    <div class="entradas-right-card content-box">
+                        <div class="box-header">
+                            <h3>🛒 Detalle del Lote a Ingresar</h3>
+                        </div>
+
+                        <div class="form-row margin-bottom-sm">
+                            <div class="form-group">
+                                <label>Proveedor</label>
+                                <input type="text" id="proveedor-entrada" value="Proveedor General" class="input-control">
+                            </div>
+                            <div class="form-group">
+                                <label>Observaciones</label>
+                                <input type="text" id="observaciones-entrada" placeholder="Ej: Factura 4501 / Reabastecimiento" class="input-control">
+                            </div>
+                        </div>
+
+                        <div class="carrito-table-container">
+                            <div class="table-responsive">
+                                <table class="modern-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Producto</th>
+                                            <th>Cantidad</th>
+                                            <th>Costo Compra</th>
+                                            <th>Subtotal</th>
+                                            <th>Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="carrito-body">
+                                        <tr><td colspan="5" class="text-center text-muted">No hay productos seleccionados</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="totales-summary-box">
+                            <div class="total-row-final">
+                                <span>Costo Total Entrada:</span>
+                                <strong id="total-entrada-monto" class="text-primary">$0.00</strong>
+                            </div>
+                        </div>
+
+                        <div class="form-actions-right">
+                            <button class="btn btn-secondary" onclick="limpiarCarrito()">Limpiar</button>
+                            <button class="btn btn-primary btn-lg" onclick="procesarEntrada()">📥 Registrar Entrada de Stock</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: REGISTRAR PRODUCTO NUEVO (MOVIDO DE INVENTARIO) -->
+            <div id="tab-content-nuevo" class="tab-pane" style="display: none;">
+                <div class="content-box form-box-large">
+                    <div class="box-header">
+                        <h2>✨ Alta de Nuevo Producto en Tienda CVS</h2>
+                        <span class="text-muted">Crea el producto e ingresa su primer stock a la tienda</span>
+                    </div>
+
+                    <div id="nuevo-prod-alert" class="alert alert-danger" style="display: none;"></div>
+                    <div id="nuevo-prod-success" class="alert alert-success" style="display: none;"></div>
+
+                    <form id="form-nuevo-producto" onsubmit="guardarNuevoProducto(event)">
+                        <div class="form-grid-2">
+                            <div class="form-group">
+                                <label>Código de Barras *</label>
+                                <div class="input-with-button">
+                                    <input type="text" id="nuevo-codigo" placeholder="Ej: 750100000099" required class="input-control">
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="generarCodigoAleatorio()">🎲 Generar</button>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Nombre del Producto *</label>
+                                <input type="text" id="nuevo-nombre" placeholder="Ej: Jugo Valle Frutas 500ml" required class="input-control">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Categoría</label>
+                                <input type="text" id="nuevo-categoria" placeholder="Ej: Bebidas, Botanas, Abarrotes" list="categorias-list" class="input-control">
+                                <datalist id="categorias-list">
+                                    <option value="Bebidas">
+                                    <option value="Botanas">
+                                    <option value="Lácteos">
+                                    <option value="Abarrotes">
+                                    <option value="Galletas">
+                                    <option value="Dulces">
+                                    <option value="Limpieza">
+                                    <option value="Enlatados">
+                                    <option value="Hogar">
+                                </datalist>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Precio de Venta al Público ($ sin IVA) *</label>
+                                <input type="number" step="0.01" id="nuevo-precio-venta" placeholder="0.00" required class="input-control">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Precio de Compra / Costo ($)</label>
+                                <input type="number" step="0.01" id="nuevo-precio-compra" placeholder="0.00" class="input-control">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Stock Inicial a Ingresar *</label>
+                                <input type="number" id="nuevo-stock-inicial" value="10" min="1" required class="input-control">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Stock Mínimo para Alerta</label>
+                                <input type="number" id="nuevo-stock-minimo" value="5" min="1" class="input-control">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Proveedor de Origen</label>
+                                <input type="text" id="nuevo-proveedor" placeholder="Proveedor General" class="input-control">
+                            </div>
+                        </div>
+
+                        <div class="form-group margin-top-sm">
+                            <label>Observaciones del Registro</label>
+                            <input type="text" id="nuevo-observaciones" placeholder="Alta inicial de producto en tienda" class="input-control">
+                        </div>
+
+                        <div class="form-actions-right margin-top-md">
+                            <button type="reset" class="btn btn-secondary">Limpiar Formulario</button>
+                            <button type="submit" class="btn btn-primary btn-lg" id="btn-guardar-nuevo">
+                                ✨ Registrar Producto e Ingresar Stock
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Recent Entries Section -->
+            <div class="content-box margin-top-lg">
+                <div class="box-header">
+                    <h2>📋 Historial de Entradas Recientes</h2>
+                </div>
+                <div class="table-responsive">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Folio</th>
+                                <th>Fecha y Hora</th>
+                                <th>Proveedor</th>
+                                <th>Costo Total</th>
+                                <th>Usuario</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="entradas-recientes-body">
+                            <tr><td colspan="6" class="text-center text-muted">Cargando historial de entradas...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Detalle de Entrada -->
+    <div id="detalle-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>📋 Detalle de Entrada de Mercancía</h2>
+                <button class="btn-close" onclick="cerrarModal()">×</button>
+            </div>
+            <div id="detalle-content" class="modal-body"></div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="cerrarModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/entradas.js"></script>
+</body>
+</html>

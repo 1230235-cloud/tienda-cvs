@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario Tienda CVS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-wrapper">
+        <header id="global-header" class="global-header"></header>
+
+        <main class="main-content">
+            <div class="page-title-bar">
+                <div>
+                    <h1>📦 Inventario Tienda CVS</h1>
+                    <p class="subtitle">Consulta de existencias actuales y productos disponibles en tienda</p>
+                </div>
+                <a href="entradas.html" class="btn btn-primary btn-lg">
+                    📥 + Surtir Stock / Agregar Producto Nuevo
+                </a>
+            </div>
+
+            <div class="notice-info-bar">
+                <span>ℹ️ <strong>Nota:</strong> Los productos nuevos y la adición de existencias se registran únicamente desde el módulo de <a href="entradas.html">Entradas de Mercancía</a>.</span>
+            </div>
+
+            <!-- Metrics bar -->
+            <div class="content-box margin-bottom-sm">
+                <div class="mini-metrics-row">
+                    <div class="mini-metric">
+                        <span class="m-label">SKUs en Tienda</span>
+                        <strong class="m-value" id="inv-total-skus">0</strong>
+                    </div>
+                    <div class="mini-metric">
+                        <span class="m-label">Unidades Totales</span>
+                        <strong class="m-value" id="inv-total-units">0</strong>
+                    </div>
+                    <div class="mini-metric">
+                        <span class="m-label">Valor del Inventario</span>
+                        <strong class="m-value" id="inv-total-value">$0.00</strong>
+                    </div>
+                    <div class="mini-metric text-warning">
+                        <span class="m-label">Stock Bajo / Alertas</span>
+                        <strong class="m-value" id="inv-low-count">0</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters Section -->
+            <div class="content-box margin-bottom-sm">
+                <div class="filters-row">
+                    <div class="filter-group search-group">
+                        <label>Buscar producto</label>
+                        <div class="search-section">
+                            <input type="text" id="buscar-producto" class="search-input" placeholder="🔍 Buscar por nombre o código de barras...">
+                            <button id="btn-regresar-busqueda" class="btn btn-secondary" onclick="regresarBusqueda()" style="display: none;">
+                                ← Regresar
+                            </button>
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label>Categoría</label>
+                        <select id="filtro-categoria" class="select-input">
+                            <option value="">Todas las categorías</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Estado de Stock</label>
+                        <select id="filtro-estado" class="select-input">
+                            <option value="">Todos los estados</option>
+                            <option value="disponible">✅ En Stock suficiente</option>
+                            <option value="bajo">⚠️ Stock Bajo</option>
+                            <option value="agotado">🚫 Agotado</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table section -->
+            <div class="content-box">
+                <div class="table-responsive">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Producto</th>
+                                <th>Categoría</th>
+                                <th>Precio Venta</th>
+                                <th>Stock Actual</th>
+                                <th>Stock Mínimo</th>
+                                <th>Estado</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productos-body">
+                            <tr><td colspan="8" class="text-center">Cargando inventario de la tienda...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/inventario.js"></script>
+</body>
+</html>

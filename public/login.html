@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión - Tienda CVS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Estilos ajustados: más ancho, menor altura y ocultamiento de sidebar -->
+    <style>
+        /* Ocultar el sidebar en caso de que se inyecte automáticamente */
+        .login-body #sidebar,
+        .login-body aside {
+            display: none !important;
+        }
+
+        .login-body {
+            padding: 10px;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 380px; /* Aumentado el ancho */
+            padding: 0;
+        }
+
+        .login-card {
+            max-width: 380px;
+            margin: 0 auto;
+            overflow: hidden;
+            padding: 14px 18px; /* Altura vertical reducida */
+        }
+
+        .login-brand {
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .brand-icon {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 4px;
+            width: 100%;
+        }
+
+        .brand-logo-img {
+            max-width: 50px;  /* Logo compacto para ganar altura */
+            max-height: 50px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .login-brand h1 {
+            font-size: 1.3em;
+            margin-top: 2px;
+            margin-bottom: 2px;
+        }
+
+        .brand-tagline {
+            font-size: 0.8em;
+            margin: 0;
+        }
+
+        .login-form {
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .form-group {
+            gap: 2px;
+        }
+
+        .form-group label {
+            font-size: 0.82em;
+        }
+
+        .form-group input {
+            padding: 6px 10px 6px 34px;
+            font-size: 0.9em;
+        }
+
+        .demo-credentials {
+            padding: 8px 10px;
+            margin: 8px 0;
+        }
+
+        .demo-title {
+            font-size: 0.78em;
+            margin-bottom: 4px;
+        }
+
+        .demo-buttons {
+            display: flex;
+            flex-direction: row; /* Admin y Cajero uno al lado del otro */
+            gap: 6px;
+        }
+
+        .login-footer {
+            margin-top: 6px;
+            font-size: 0.78em;
+            gap: 4px;
+        }
+    </style>
+</head>
+<body class="login-body">
+    <div class="login-container">
+        <div class="login-card">
+            
+            <!-- CABECERA DEL LOGIN CON UN SOLO TÍTULO Y LOGO CONTROLADO -->
+            <div class="login-brand">
+                <div class="brand-icon">
+                    <img src="assets/logo.png" alt="Logo Tienda CVS" class="brand-logo-img">
+                </div>
+                <h1>Tienda CVS</h1>
+                <p class="brand-tagline">Sistema de Gestión e Inventario</p>
+            </div>
+
+            <div id="login-alert" class="alert alert-danger" style="display: none;"></div>
+
+            <form id="login-form" class="login-form">
+                <div class="form-group">
+                    <label for="username">Usuario</label>
+                    <div class="input-icon-wrapper">
+                        <span class="input-icon">👤</span>
+                        <input type="text" id="username" placeholder="admin o cajero" required autocomplete="username" autofocus>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Contraseña</label>
+                    <div class="input-icon-wrapper">
+                        <input type="password" id="password" placeholder="Escribe tu contraseña" required autocomplete="current-password">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block btn-lg" id="btn-submit">
+                    Iniciar Sesión
+                </button>
+            </form>
+
+            <div class="login-footer">
+                <button type="button" class="btn btn-secondary btn-block" id="btn-show-register">
+                    Crear nuevo usuario
+                </button>
+            </div>
+
+            <div class="demo-credentials">
+                <p class="demo-title">🔑 Usuarios de Prueba:</p>
+                <div class="demo-buttons">
+                    <button type="button" class="btn btn-outline" onclick="fillDemo('admin', 'admin123')" style="width: 100%; font-size: 0.82em; padding: 4px;">
+                         Admin / admin123
+                    </button>
+                    <button type="button" class="btn btn-outline" onclick="fillDemo('cajero', '123456')" style="width: 100%; font-size: 0.82em; padding: 4px;">
+                         Cajero / 123456
+                    </button>
+                </div>
+            </div>
+
+            <div class="login-footer">
+                <p>Tienda CVS POS & Inventory v2.0 • 2026</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE REGISTRO -->
+    <div id="register-modal" class="modal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>Crear Nuevo Usuario</h2>
+                <button class="btn-close" onclick="closeRegisterModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="register-alert" class="alert alert-danger" style="display: none;"></div>
+                <div id="register-success" class="alert alert-success" style="display: none;"></div>
+                
+                <form id="register-form" class="login-form">
+                    <div class="form-group">
+                        <label for="reg-nombre">Nombre Completo *</label>
+                        <div class="input-icon-wrapper">
+                            <input type="text" id="reg-nombre" placeholder="Ej: Juan Pérez" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reg-username">Usuario *</label>
+                        <div class="input-icon-wrapper">
+                            <input type="text" id="reg-username" placeholder="Ej: juan_perez" required autocomplete="username">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reg-password">Contraseña *</label>
+                        <div class="input-icon-wrapper">
+                            <input type="password" id="reg-password" placeholder="Mínimo 6 caracteres" required minlength="6" autocomplete="new-password">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reg-rol">Rol</label>
+                        <div class="input-icon-wrapper">
+                            <select id="reg-rol" class="select-input">
+                                <option value="CAJERO">Cajero</option>
+                                <option value="ADMIN">Administrador</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block btn-lg" id="btn-register-submit">
+                         Registrar Usuario
+                    </button>
+                </form>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeRegisterModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS GLOBAL -->
+    <script src="js/main.js"></script>
+
+    <script>
+        function fillDemo(user, pass) {
+            document.getElementById('username').value = user;
+            document.getElementById('password').value = pass;
+        }
+
+        function openRegisterModal() {
+            document.getElementById('register-modal').classList.add('active');
+            document.getElementById('register-alert').style.display = 'none';
+            document.getElementById('register-success').style.display = 'none';
+            document.getElementById('register-form').reset();
+        }
+
+        function closeRegisterModal() {
+            document.getElementById('register-modal').classList.remove('active');
+        }
+
+        document.getElementById('btn-show-register').addEventListener('click', openRegisterModal);
+
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const alertDiv = document.getElementById('register-alert');
+            const successDiv = document.getElementById('register-success');
+            const btnSubmit = document.getElementById('btn-register-submit');
+            
+            alertDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = 'Registrando... ⏳';
+
+            const nombre = document.getElementById('reg-nombre').value.trim();
+            const username = document.getElementById('reg-username').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const rol = document.getElementById('reg-rol').value;
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, nombre, rol })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    successDiv.textContent = data.message || 'Usuario nuevo creado';
+                    successDiv.style.display = 'block';
+                    btnSubmit.innerHTML = '<span>Registrar Usuario</span> ✨';
+                    btnSubmit.disabled = false;
+                    
+                    if (typeof showToast === 'function') {
+                        showToast('Usuario nuevo creado', 'El usuario se registró correctamente', 'success');
+                    }
+                    
+                    setTimeout(() => {
+                        closeRegisterModal();
+                    }, 1500);
+                } else {
+                    alertDiv.textContent = data.error || 'Error al crear usuario';
+                    alertDiv.style.display = 'block';
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = '<span>Registrar Usuario</span> ✨';
+                }
+            } catch (err) {
+                alertDiv.textContent = 'No se pudo conectar con el servidor';
+                alertDiv.style.display = 'block';
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = '<span>Registrar Usuario</span> ✨';
+            }
+        });
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const alertDiv = document.getElementById('login-alert');
+            const btnSubmit = document.getElementById('btn-submit');
+            
+            alertDiv.style.display = 'none';
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = 'Verificando... ⏳';
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('auth_token', data.token);
+                    localStorage.setItem('user_info', JSON.stringify(data.user));
+                    window.location.href = 'dashboard.html';
+                } else {
+                    alertDiv.textContent = data.error || 'Error al iniciar sesión';
+                    alertDiv.style.display = 'block';
+                }
+            } catch (err) {
+                alertDiv.textContent = 'No se pudo conectar con el servidor';
+                alertDiv.style.display = 'block';
+            } finally {
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = '<span>Iniciar Sesión</span> ➔';
+            }
+        });
+    </script>
+</body>
+</html>

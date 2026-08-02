@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Punto de Venta - Tienda CVS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-wrapper">
+        <header id="global-header" class="global-header"></header>
+
+        <main class="main-content">
+            <div class="page-title-bar">
+                <div>
+                    <h1>💰 Punto de Venta (POS) - Tienda CVS</h1>
+                    <p class="subtitle">Escanea el código de barras o selecciona productos para realizar cobros rápidos</p>
+                </div>
+            </div>
+
+            <div class="ventas-layout">
+                <!-- Left: Catalog & Scanner -->
+                <div class="ventas-left-card">
+                    <div class="box-header">
+                        <h3>🔍 Escáner / Búsqueda de Productos</h3>
+                    </div>
+
+                    <div class="search-section">
+                        <input type="text" id="buscar-producto-venta" class="search-input" placeholder="⚡ Escanear código de barras o escribir nombre del producto..." autofocus>
+                        <button id="btn-regresar-busqueda" class="btn btn-secondary" onclick="regresarBusqueda()" style="display: none;">
+                            ← Regresar
+                        </button>
+                    </div>
+
+                    <div class="productos-grid" id="productos-grid">
+                        <p class="text-center text-muted">Cargando productos de Tienda CVS...</p>
+                    </div>
+                </div>
+
+                <!-- Right: Sales Cart & Checkout -->
+                <div class="ventas-right-card">
+                    <div class="box-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3>🛒 Carrito de Compra</h3>
+                        <button class="btn btn-primary btn-sm" onclick="abrirCarritoModal()" style="font-size: 0.9em;">
+                            📊 Ver Carrito
+                        </button>
+                    </div>
+
+                    <div class="form-row margin-bottom-sm">
+                        <div class="form-group">
+                            <label>Cliente</label>
+                            <input type="text" id="cliente" value="PÚBLICO GENERAL" class="input-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Método de Pago</label>
+                            <select id="metodo-pago" class="select-input">
+                                <option value="EFECTIVO"> Efectivo</option>
+                                <option value="TARJETA"> Tarjeta (Débito/Crédito)</option>
+                                <option value="TRANSFERENCIA"> Transferencia SPEI</option>
+                                <option value="TRANSFERENCIA">A cargo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="carrito-info-bar">
+                        <span class="carrito-items-count">📦 <span id="carrito-count">0</span> artículos</span>
+                        <span class="carrito-items-count">💰 Total: <span id="total-carrito-preview">$0.00</span></span>
+                    </div>
+
+                    <div class="table-responsive carrito-table-container" style="display: none;" id="carrito-table-container">
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Cant.</th>
+                                    <th>Precio</th>
+                                    <th>Subtotal</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="carrito-body">
+                                <tr><td colspan="5" class="text-center text-muted">Carrito de venta vacío</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Totales section SIN IVA -->
+                    <div class="totales-summary-box">
+                        <div class="total-row-final">
+                            <span>TOTAL A COBRAR:</span>
+                            <strong id="total" class="text-primary text-xl">$0.00</strong>
+                        </div>
+                    </div>
+
+                    <div class="form-actions-right margin-top-sm">
+                        <button class="btn btn-secondary" onclick="limpiarCarrito()">Vaciar Carrito</button>
+                        <button class="btn btn-primary btn-lg" onclick="procesarVenta()">🛍️ PROCESAR VENTA</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ventas Recientes -->
+            <div class="content-box margin-top-lg">
+                <div class="box-header">
+                    <h2>📋 Ventas Recientes de la Tienda</h2>
+                </div>
+                <div class="table-responsive">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Folio</th>
+                                <th>Fecha y Hora</th>
+                                <th>Cliente</th>
+                                <th>Monto Total</th>
+                                <th>Método de Pago</th>
+                                <th>Estado</th>
+                                <th>Ticket</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ventas-recientes-body">
+                            <tr><td colspan="7" class="text-center text-muted">Cargando ventas recientes...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Ticket Modal -->
+    <div id="ticket-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🧾 Ticket de Venta - Tienda CVS</h2>
+                <button class="btn-close" onclick="cerrarModal()">×</button>
+            </div>
+            <div id="ticket-content" class="ticket-content"></div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="cerrarModal()">Cerrar</button>
+                <button class="btn btn-primary" onclick="imprimirTicket()">🖨️ Imprimir Ticket</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/ventas.js"></script>
+</body>
+</html>

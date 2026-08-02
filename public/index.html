@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tienda CVS - Inicio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-wrapper">
+        <header id="global-header" class="global-header"></header>
+
+        <main class="main-content">
+            <div class="landing-page">
+                <div class="landing-image-container" id="landing-image-container">
+                    <div class="landing-image-placeholder">
+                        <span class="placeholder-icon">🖼️</span>
+                        <span>Imagen principal próximamente</span>
+                    </div>
+                </div>
+
+                <h1 class="landing-title">Bienvenido a Tienda CVS</h1>
+                <p class="landing-subtitle">Sistema integral de gestión de inventario, punto de venta y control de caja</p>
+
+                <div class="landing-actions">
+                    <button class="landing-btn" onclick="uploadLandingImage()">
+                        📷 Subir Imagen
+                    </button>
+                    <button class="landing-btn landing-btn-secondary" onclick="clearLandingImage()">
+                        🗑️ Eliminar Imagen
+                    </button>
+                    <a href="dashboard.html" class="landing-btn">
+                        📊 Ir al Dashboard
+                    </a>
+                    <a href="ventas.html" class="landing-btn landing-btn-secondary">
+                        ⚡ Abrir Punto de Venta
+                    </a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/index.js"></script>
+</body>
+</html>
