@@ -5,28 +5,34 @@ const db = require('../database');
 // Helper para ejecutar queries con promesas
 function runQuery(sql, params = []) {
     return new Promise((resolve, reject) => {
-        db.all(sql, params, (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows);
-        });
+        try {
+            const rows = db.all(sql, params);
+            resolve(rows);
+        } catch (err) {
+            reject(err);
+        }
     });
 }
 
 function runGet(sql, params = []) {
     return new Promise((resolve, reject) => {
-        db.get(sql, params, (err, row) => {
-            if (err) reject(err);
-            else resolve(row);
-        });
+        try {
+            const row = db.get(sql, params);
+            resolve(row);
+        } catch (err) {
+            reject(err);
+        }
     });
 }
 
 function runRun(sql, params = []) {
     return new Promise((resolve, reject) => {
-        db.run(sql, params, function(err) {
-            if (err) reject(err);
-            else resolve({ lastID: this.lastID, changes: this.changes });
-        });
+        try {
+            const result = db.run(sql, params);
+            resolve({ lastID: result.lastInsertRowid, changes: result.changes });
+        } catch (err) {
+            reject(err);
+        }
     });
 }
 

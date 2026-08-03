@@ -1,24 +1,28 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 // Helper para ejecutar queries con promesas
 function runGet(sql, params = []) {
     return new Promise((resolve, reject) => {
-        db.get(sql, params, (err, row) => {
-            if (err) reject(err);
-            else resolve(row);
-        });
+        try {
+            const row = db.get(sql, params);
+            resolve(row);
+        } catch (err) {
+            reject(err);
+        }
     });
 }
 
 function run(sql, params = []) {
     return new Promise((resolve, reject) => {
-        db.run(sql, params, function(err) {
-            if (err) reject(err);
-            else resolve({ id: this.lastID, changes: this.changes });
-        });
+        try {
+            const result = db.run(sql, params);
+            resolve({ id: result.lastInsertRowid, changes: result.changes });
+        } catch (err) {
+            reject(err);
+        }
     });
 }
 
