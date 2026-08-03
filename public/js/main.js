@@ -167,7 +167,7 @@ function initSidebar() {
         <aside class="sidebar collapsed" id="sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-brand">
-                    <img src="assets/logo.png" alt="Logo Vida Sana" class="sidebar-logo-img">
+                    <img src="assets/Logo vida sana-02.png" alt="Logo Vida Sana" class="sidebar-logo-img">
                 </div>
             </div>
             

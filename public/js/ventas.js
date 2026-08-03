@@ -285,25 +285,25 @@ function mostrarTicket() {
     } else {
         content.innerHTML = `
             <div class="ticket-receipt">
-                <div class="ticket-header" style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 12px; margin-bottom: 15px;">
-                    <img src="assets/logo.png" alt="Logo" style="max-height: 60px; margin-bottom: 5px;" onerror="this.style.display='none'">
-                    <h2 style="font-size: 1.4em; margin: 0; color: #1e293b;">TIENDA CVS</h2>
-                    <p style="margin: 3px 0; font-size: 0.85em; color: #64748b;">Comercio y Abarrotes de Calidad</p>
-                    <div style="font-size: 0.85em; margin-top: 8px; font-family: monospace;">
-                        <p style="margin: 2px 0;"><strong>Folio:</strong> ${ventaActual.folio}</p>
-                        <p style="margin: 2px 0;"><strong>Fecha:</strong> ${formatDate(ventaActual.fecha)}</p>
-                        <p style="margin: 2px 0;"><strong>Atendido por:</strong> ${ventaActual.usuario || 'ADMIN'}</p>
-                        <p style="margin: 2px 0;"><strong>Cliente:</strong> ${ventaActual.cliente}</p>
+                <div class="ticket-header" style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 8px; margin-bottom: 8px;">
+                    <img src="assets/Logo vida sana-02.png" alt="Logo" style="max-height: 35px; margin-bottom: 3px;" onerror="this.style.display='none'">
+                    <h2 style="font-size: 1em; margin: 0; color: #1e293b;">TIENDA CVS</h2>
+                    <p style="margin: 2px 0; font-size: 0.7em; color: #64748b;">Comercio y Abarrotes de Calidad</p>
+                    <div style="font-size: 0.7em; margin-top: 5px; font-family: monospace;">
+                        <p style="margin: 1px 0;"><strong>Folio:</strong> ${ventaActual.folio}</p>
+                        <p style="margin: 1px 0;"><strong>Fecha:</strong> ${formatDate(ventaActual.fecha)}</p>
+                        <p style="margin: 1px 0;"><strong>Atendido por:</strong> ${ventaActual.usuario || 'ADMIN'}</p>
+                        <p style="margin: 1px 0;"><strong>Cliente:</strong> ${ventaActual.cliente}</p>
                     </div>
                 </div>
 
-                <div class="ticket-body" style="font-family: monospace; font-size: 0.9em; margin-bottom: 15px;">
-                    <div style="display: flex; justify-content: space-between; font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 8px;">
+                <div class="ticket-body" style="font-family: monospace; font-size: 0.75em; margin-bottom: 8px;">
+                    <div style="display: flex; justify-content: space-between; font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 2px; margin-bottom: 5px;">
                         <span>DESCRIPCIÓN</span>
                         <span>IMPORTE</span>
                     </div>
                     ${detalles.map(detalle => `
-                        <div class="ticket-item" style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <div class="ticket-item" style="display: flex; justify-content: space-between; margin-bottom: 3px;">
                             <div>
                                 <span>${detalle.nombre || 'Producto'}</span><br>
                                 <small style="color: #64748b;">${detalle.cantidad} x ${formatCurrency(detalle.precio_unitario)}</small>
@@ -313,16 +313,16 @@ function mostrarTicket() {
                     `).join('')}
                 </div>
 
-                <div class="ticket-footer" style="border-top: 2px dashed #000; padding-top: 12px; font-family: monospace;">
-                    <div style="display: flex; justify-content: space-between; font-size: 1.2em; font-weight: bold; margin-bottom: 8px;">
+                <div class="ticket-footer" style="border-top: 2px dashed #000; padding-top: 8px; font-family: monospace;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.9em; font-weight: bold; margin-bottom: 4px;">
                         <span>TOTAL A PAGAR:</span>
                         <span style="color: #2563eb;">${formatCurrency(total)}</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.85em; color: #64748b; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.7em; color: #64748b; margin-bottom: 8px;">
                         <span>Método de Pago:</span>
                         <span>${ventaActual.metodo_pago || 'EFECTIVO'}</span>
                     </div>
-                    <p style="text-align: center; font-size: 0.85em; margin: 0; color: #475569;">
+                    <p style="text-align: center; font-size: 0.7em; margin: 0; color: #475569;">
                         ¡Gracias por su compra en Tienda CVS!<br>
                         Conserve este ticket para cualquier aclaración.
                     </p>

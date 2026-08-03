@@ -51,7 +51,7 @@ body {
 
 .login-container {
     width: 100%;
-    max-width: 420px; /* AUMENTADO: Tarjeta más amplia para lucir el logo */
+    max-width: 500px; /* AUMENTADO: Tarjeta más amplia para lucir el logo */
     padding: 0;
 }
 
@@ -89,7 +89,7 @@ body {
 }
 
 .brand-logo-img {
-    max-width: 200px;  /* LOGO MÁS GRANDE */
+    max-width: 450px !important;  /* LOGO MUCHO MÁS GRANDE */
     width: 100%;
     height: auto;
     object-fit: contain;
@@ -1185,10 +1185,10 @@ body {
 }
 
 .modal-actions {
-    padding: 20px 25px;
+    padding: 14px 18px;
     border-top: 2px solid var(--gray-200);
     display: flex;
-    gap: 15px;
+    gap: 10px;
     justify-content: flex-end;
 }
 
@@ -1641,6 +1641,17 @@ body {
     max-width: 480px;
 }
 
+.ticket-modal {
+    max-width: 420px;
+}
+
+.ticket-content {
+    background: white;
+    padding: 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+}
+
 .modal-header {
     padding: 25px;
     border-bottom: 2px solid var(--gray-200);
@@ -2089,4 +2100,20 @@ table th,
     height: auto;
     object-fit: contain;
     display: block;
+}
+/* ===== CAMBIO DE COLOR BARRA DE CARRITO ===== */
+.pos-cart-info,
+.cart-info-bar,
+.carrito-info-bar,
+.totales-summary-box {
+    background: linear-gradient(135deg, #50c0e0 0%, #90c050 100%) !important;
+    color: white !important;
+    border: none !important;
+}
+
+/* Cambiar el texto e iconos dentro de la barra a blanco para que se lean bien */
+.pos-cart-info *,
+.cart-info-bar *,
+.carrito-info-bar * {
+    color: white !important;
 }

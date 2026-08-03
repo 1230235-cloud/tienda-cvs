@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=1.1">
 </head>
 <body>
     <div class="app-wrapper">
@@ -97,7 +97,7 @@
 
                     <div class="form-actions-right margin-top-sm">
                         <button class="btn btn-secondary" onclick="limpiarCarrito()">Vaciar Carrito</button>
-                        <button class="btn btn-primary btn-lg" onclick="procesarVenta()">🛍️ PROCESAR VENTA</button>
+                        <button class="btn btn-primary btn-lg" onclick="procesarVenta()" style="background: linear-gradient(135deg, #50c0e0 0%, #90c050 100%); color: white;">🛍️ PROCESAR VENTA</button>
                     </div>
                 </div>
             </div>
@@ -131,7 +131,7 @@
 
     <!-- Ticket Modal -->
     <div id="ticket-modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content ticket-modal">
             <div class="modal-header">
                 <h2>🧾 Ticket de Venta - Tienda CVS</h2>
                 <button class="btn-close" onclick="cerrarModal()">×</button>
