@@ -349,31 +349,34 @@ function imprimirTicket() {
         alert('No hay contenido del ticket para imprimir');
         return;
     }
-    
-    const content = ticketContent.innerHTML;
-    const printWindow = window.open('', '_blank');
+
+    const printWindow = window.open('', '_blank', 'width=300,height=600');
     if (!printWindow) {
         alert('No se pudo abrir la ventana de impresión. Verifica que no esté bloqueada por el navegador.');
         return;
     }
-    
+
     printWindow.document.write(`
         <html>
         <head>
             <title>Ticket de Venta</title>
             <style>
-                body { font-family: 'Courier New', monospace; font-size: 12px; width: 300px; margin: 0 auto; }
-                .ticket-header { text-align: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px dashed #000; }
-                .ticket-body { margin: 20px 0; }
-                .ticket-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #ccc; }
-                .ticket-footer { margin-top: 20px; padding-top: 15px; border-top: 2px dashed #000; text-align: center; }
+                body { font-family: 'Courier New', monospace; font-size: 11px; width: 80mm; margin: 0 auto; padding: 0; }
+                .ticket-receipt { width: 100%; }
+                .ticket-header { text-align: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px dashed #000; }
+                .ticket-header img { max-height: 40px; margin-bottom: 3px; }
+                .ticket-header h2 { font-size: 1.1em; margin: 0; color: #1e293b; }
+                .ticket-header p { margin: 2px 0; font-size: 0.75em; color: #64748b; }
+                .ticket-body { margin: 10px 0; }
+                .ticket-item { display: flex; justify-content: space-between; margin-bottom: 4px; }
+                .ticket-footer { margin-top: 10px; padding-top: 10px; border-top: 2px dashed #000; text-align: center; }
             </style>
         </head>
-        <body>${content}</body>
+        <body>${ticketContent.innerHTML}</body>
         </html>
     `);
     printWindow.document.close();
-    
+
     printWindow.onload = function() {
         printWindow.print();
     };

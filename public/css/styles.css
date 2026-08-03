@@ -2117,3 +2117,42 @@ table th,
 .carrito-info-bar * {
     color: white !important;
 }
+
+/* ===== PRINT / TICKET PRINTER ===== */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+
+    #ticket-modal,
+    #ticket-modal * {
+        visibility: visible;
+    }
+
+    #ticket-modal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        max-width: 100%;
+        background: white;
+    }
+
+    .modal-overlay,
+    .modal-header,
+    .modal-actions,
+    .sidebar,
+    .global-header,
+    .app-wrapper > *:not(#ticket-modal) {
+        display: none !important;
+    }
+
+    .ticket-content {
+        padding: 0;
+        font-size: 11px;
+    }
+
+    .ticket-receipt {
+        width: 100%;
+    }
+}
