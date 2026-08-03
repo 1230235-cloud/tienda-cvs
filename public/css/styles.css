@@ -1514,8 +1514,10 @@ body {
 }
 
 .sidebar-nav-icon {
-    font-size: 1.3em;
-    width: 30px;
+    font-size: 1.2em;
+    width: 28px;
+    text-align: center;
+    display: inline-block;
 }
 
 .sidebar-divider {

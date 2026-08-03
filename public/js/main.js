@@ -173,27 +173,27 @@ function initSidebar() {
             
             <nav class="sidebar-nav">
                 <a href="dashboard.html" class="sidebar-nav-item" data-page="dashboard">
-                    <span class="sidebar-nav-icon">📊</span>
+                    <i class="fa-solid fa-chart-line sidebar-nav-icon"></i>
                     <span>Dashboard</span>
                 </a>
                 <a href="inventario.html" class="sidebar-nav-item" data-page="inventario">
-                    <span class="sidebar-nav-icon">📦</span>
+                    <i class="fa-solid fa-boxes-stacked sidebar-nav-icon"></i>
                     <span>Inventario</span>
                 </a>
                 <a href="entradas.html" class="sidebar-nav-item" data-page="entradas">
-                    <span class="sidebar-nav-icon">📥</span>
+                    <i class="fa-solid fa-file-import sidebar-nav-icon"></i>
                     <span>Entradas</span>
                 </a>
                 <a href="ventas.html" class="sidebar-nav-item" data-page="ventas">
-                    <span class="sidebar-nav-icon">💰</span>
+                    <i class="fa-solid fa-cash-register sidebar-nav-icon"></i>
                     <span>Punto de Venta</span>
                 </a>
                 <a href="codigos-barras.html" class="sidebar-nav-item" data-page="codigos-barras">
-                    <span class="sidebar-nav-icon">📊</span>
+                    <i class="fa-solid fa-barcode sidebar-nav-icon"></i>
                     <span>Códigos de Barras</span>
                 </a>
                 <a href="cortes.html" class="sidebar-nav-item" data-page="cortes">
-                    <span class="sidebar-nav-icon">💵</span>
+                    <i class="fa-solid fa-sack-dollar sidebar-nav-icon"></i>
                     <span>Corte de Caja</span>
                 </a>
             </nav>
