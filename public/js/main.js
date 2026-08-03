@@ -193,7 +193,7 @@ function initSidebar() {
                     <span>Códigos de Barras</span>
                 </a>
                 <a href="cortes.html" class="sidebar-nav-item" data-page="cortes">
-                    <i class="fa-solid fa-sack-dollar sidebar-nav-icon"></i>
+                    <i class="fa-solid fa-dollar-sign sidebar-nav-icon"></i>
                     <span>Corte de Caja</span>
                 </a>
             </nav>
