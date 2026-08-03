@@ -35,6 +35,7 @@
   "build": {
     "appId": "com.tienda.inventario",
     "productName": "SistemaInventario",
+    "npmRebuild": false,
     "directories": {
       "output": "dist"
     },
@@ -49,7 +50,8 @@
     },
     "win": {
       "target": "nsis",
-      "icon": "assets/icon.ico"
+      "icon": "assets/icon.ico",
+      "forceCodeSigning": false
     },
     "nsis": {
       "oneClick": false,

@@ -1,11 +1,10 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const os = require('os');
-const { autoUpdater } = require('electron-updater');
-const { spawn } = require('child_process');
+const http = require('http');
 
 let mainWindow;
-let serverProcess = null;
+let serverApp = null;
 
 function getLocalIP() {
   const interfaces = os.networkInterfaces();
@@ -19,25 +18,58 @@ function getLocalIP() {
   return 'localhost';
 }
 
+function waitForServer(retries = 40, delay = 500) {
+  return new Promise((resolve, reject) => {
+    let attempts = 0;
+
+    const tryConnect = () => {
+      attempts++;
+      const req = http.request({
+        hostname: '127.0.0.1',
+        port: 3000,
+        path: '/',
+        method: 'GET',
+        timeout: 1000
+      }, (res) => {
+        resolve(true);
+      });
+
+      req.on('error', () => {
+        if (attempts >= retries) {
+          reject(new Error('Servidor no respondió después de ' + ((retries * delay) / 1000) + ' segundos'));
+        } else {
+          setTimeout(tryConnect, delay);
+        }
+      });
+
+      req.on('timeout', () => {
+        req.destroy();
+        if (attempts >= retries) {
+          reject(new Error('Servidor no respondió después de ' + ((retries * delay) / 1000) + ' segundos'));
+        } else {
+          setTimeout(tryConnect, delay);
+        }
+      });
+
+      req.end();
+    };
+
+    tryConnect();
+  });
+}
+
 function startServer() {
-  const serverPath = path.join(__dirname, 'server.js');
-  serverProcess = spawn('node', [serverPath], {
-    cwd: __dirname,
-    env: { ...process.env, PORT: '3000', HOST: '0.0.0.0' },
-    stdio: 'pipe'
-  });
+  if (serverApp) return;
 
-  serverProcess.stdout.on('data', (data) => {
-    console.log(`[SERVER] ${data}`);
-  });
-
-  serverProcess.stderr.on('data', (data) => {
-    console.error(`[SERVER ERROR] ${data}`);
-  });
-
-  serverProcess.on('error', (err) => {
-    console.error('Error al iniciar servidor:', err);
-  });
+  try {
+    console.log('Iniciando servidor Express...');
+    serverApp = require('./server.js');
+    console.log('Servidor Express cargado correctamente');
+    return true;
+  } catch (err) {
+    console.error('Error al cargar servidor:', err);
+    return false;
+  }
 }
 
 function createWindow(serverIp) {
@@ -51,7 +83,6 @@ function createWindow(serverIp) {
       contextIsolation: true,
       enableRemoteModule: false
     },
-    icon: path.join(__dirname, 'public', 'assets', 'Logo vida sana-02.png'),
     show: false
   });
 
@@ -59,12 +90,51 @@ function createWindow(serverIp) {
     mainWindow.show();
   });
 
+  const targetUrl = serverIp === 'base' ? 'http://localhost:3000' : `http://${serverIp}:3000`;
+
   if (serverIp === 'base') {
-    startServer();
-    mainWindow.loadURL('http://localhost:3000');
-    mainWindow.webContents.openDevTools({ mode: 'detach' });
+    const serverStarted = startServer();
+    if (!serverStarted) {
+      mainWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(`
+        <html>
+        <body style="font-family: sans-serif; padding: 40px; text-align: center;">
+          <h1>Error al iniciar el servidor</h1>
+          <p>No se pudo iniciar el servidor Express. Revisá la consola para más detalles.</p>
+        </body>
+        </html>
+      `));
+      return;
+    }
+
+    waitForServer()
+      .then(() => {
+        console.log('Servidor listo, cargando URL:', targetUrl);
+        return mainWindow.loadURL(targetUrl);
+      })
+      .catch((err) => {
+        console.error('Error esperando servidor:', err);
+        mainWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(`
+          <html>
+          <body style="font-family: sans-serif; padding: 40px; text-align: center;">
+            <h1>Error de conexión</h1>
+            <p>${err.message}</p>
+          </body>
+          </html>
+        `));
+      });
   } else {
-    mainWindow.loadURL(`http://${serverIp}:3000`);
+    mainWindow.loadURL(targetUrl).catch((err) => {
+      console.error('Error al cargar URL del cliente:', err);
+      mainWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(`
+        <html>
+        <body style="font-family: sans-serif; padding: 40px; text-align: center;">
+          <h1>Error de conexión</h1>
+          <p>No se pudo conectar al servidor en ${targetUrl}</p>
+          <p>${err.message}</p>
+        </body>
+        </html>
+      `));
+    });
   }
 }
 
@@ -80,7 +150,6 @@ function showModeSelector() {
       nodeIntegration: true,
       contextIsolation: false
     },
-    icon: path.join(__dirname, 'public', 'assets', 'Logo vida sana-02.png'),
     autoHideMenuBar: true
   });
 
@@ -88,10 +157,6 @@ function showModeSelector() {
 
   mainWindow.on('closed', () => {
     if (mainWindow) mainWindow = null;
-    if (serverProcess) {
-      serverProcess.kill();
-      serverProcess = null;
-    }
     app.quit();
   });
 }
@@ -123,34 +188,6 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    if (serverProcess) {
-      serverProcess.kill();
-      serverProcess = null;
-    }
     app.quit();
   }
-});
-
-autoUpdater.setFeedURL({
-  provider: 'github',
-  owner: '1230235-cloud',
-  repo: 'tienda-cvs'
-});
-
-autoUpdater.checkForUpdatesAndNotify();
-
-autoUpdater.on('update-available', () => {
-  if (mainWindow) {
-    mainWindow.webContents.send('update-available');
-  }
-});
-
-autoUpdater.on('update-downloaded', () => {
-  if (mainWindow) {
-    mainWindow.webContents.send('update-downloaded');
-  }
-});
-
-ipcMain.on('install-update', () => {
-  autoUpdater.quitAndInstall();
 });
