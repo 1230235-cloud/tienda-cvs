@@ -59,7 +59,7 @@ function waitForServer(retries = 40, delay = 500) {
 }
 
 function startServer() {
-  if (serverApp) return;
+  if (serverApp) return true;
 
   try {
     console.log('Iniciando servidor Express...');
@@ -68,7 +68,7 @@ function startServer() {
     return true;
   } catch (err) {
     console.error('Error al cargar servidor:', err);
-    return false;
+    return err;
   }
 }
 
@@ -93,16 +93,19 @@ function createWindow(serverIp) {
   const targetUrl = serverIp === 'base' ? 'http://localhost:3000' : `http://${serverIp}:3000`;
 
   if (serverIp === 'base') {
-    const serverStarted = startServer();
-    if (!serverStarted) {
-      mainWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(`
+    const serverResult = startServer();
+    if (serverResult !== true) {
+      const err = serverResult || new Error('Error desconocido al iniciar el servidor');
+      const errorHtml = `
         <html>
-        <body style="font-family: sans-serif; padding: 40px; text-align: center;">
+        <body style="font-family: sans-serif; padding: 40px; text-align: center; background: #fef2f2; color: #991b1b;">
           <h1>Error al iniciar el servidor</h1>
-          <p>No se pudo iniciar el servidor Express. Revisá la consola para más detalles.</p>
+          <p><strong>${err.message}</strong></p>
+          <pre style="text-align: left; background: #fff; padding: 15px; border-radius: 8px; overflow: auto; max-height: 70vh; border: 1px solid #fecaca;">${err.stack || ''}</pre>
         </body>
         </html>
-      `));
+      `;
+      mainWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(errorHtml));
       return;
     }
 
@@ -113,27 +116,31 @@ function createWindow(serverIp) {
       })
       .catch((err) => {
         console.error('Error esperando servidor:', err);
-        mainWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(`
+        const errorHtml = `
           <html>
-          <body style="font-family: sans-serif; padding: 40px; text-align: center;">
+          <body style="font-family: sans-serif; padding: 40px; text-align: center; background: #fef2f2; color: #991b1b;">
             <h1>Error de conexión</h1>
-            <p>${err.message}</p>
+            <p><strong>${err.message}</strong></p>
+            <pre style="text-align: left; background: #fff; padding: 15px; border-radius: 8px; overflow: auto; max-height: 70vh; border: 1px solid #fecaca;">${err.stack || ''}</pre>
           </body>
           </html>
-        `));
+        `;
+        mainWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(errorHtml));
       });
   } else {
     mainWindow.loadURL(targetUrl).catch((err) => {
       console.error('Error al cargar URL del cliente:', err);
-      mainWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(`
+      const errorHtml = `
         <html>
-        <body style="font-family: sans-serif; padding: 40px; text-align: center;">
+        <body style="font-family: sans-serif; padding: 40px; text-align: center; background: #fef2f2; color: #991b1b;">
           <h1>Error de conexión</h1>
-          <p>No se pudo conectar al servidor en ${targetUrl}</p>
-          <p>${err.message}</p>
+          <p>No se pudo conectar al servidor en <strong>${targetUrl}</strong></p>
+          <p><strong>${err.message}</strong></p>
+          <pre style="text-align: left; background: #fff; padding: 15px; border-radius: 8px; overflow: auto; max-height: 70vh; border: 1px solid #fecaca;">${err.stack || ''}</pre>
         </body>
         </html>
-      `));
+      `;
+      mainWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(errorHtml));
     });
   }
 }

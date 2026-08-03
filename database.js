@@ -5,7 +5,7 @@ const os = require('os');
 const bcrypt = require('bcrypt');
 
 const isElectron = process.versions && process.versions.electron;
-const dataDir = isElectron 
+const dataDir = isElectron
     ? path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), 'SistemaInventario')
     : path.join(__dirname, 'data');
 
@@ -18,7 +18,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('Error al abrir la base de datos:', err);
     } else {
-        console.log('Base de datos conectada correctamente');
+        console.log('Base de datos conectada correctamente en:', dbPath);
         initializeDatabase();
     }
 });
