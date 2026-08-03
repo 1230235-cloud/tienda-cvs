@@ -2,10 +2,12 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
+const os = require('os');
 const db = require('./database');
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
 
 // Middleware
 app.use(cors());
@@ -35,8 +37,22 @@ app.get('/', (req, res) => {
 });
 
 // Iniciar servidor
-app.listen(PORT, () => {
-    console.log(`Servidor corriendo en http://localhost:${PORT}`);
+const server = app.listen(PORT, HOST, () => {
+    const localIP = getLocalIP();
+    console.log(`Servidor corriendo en http://${localIP}:${PORT}`);
+    console.log(`Modo: ${HOST === '0.0.0.0' ? 'SERVIDOR BASE (accesible desde otros dispositivos)' : 'LOCAL'}`);
 });
+
+function getLocalIP() {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            if (iface.family === 'IPv4' && !iface.internal) {
+                return iface.address;
+            }
+        }
+    }
+    return 'localhost';
+}
 
 module.exports = app;

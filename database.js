@@ -1,10 +1,14 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const bcrypt = require('bcrypt');
 
-// Asegurar que el directorio de datos existe
-const dataDir = path.join(__dirname, 'data');
+const isElectron = process.versions && process.versions.electron;
+const dataDir = isElectron 
+    ? path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), 'SistemaInventario')
+    : path.join(__dirname, 'data');
+
 if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
 }

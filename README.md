@@ -57,17 +57,44 @@ También puedes crear nuevos usuarios desde el login usando el botón **"Crear n
    - Cerrar corte de caja al final del turno
    - Revisar dashboard para estadísticas
 
-## 📦 Generar Ejecutable (.exe)
+## 📦 Generar Ejecutable (.exe) - Electron
 
-Para generar el instalador de Windows:
+El proyecto está configurado para empaquetarse como aplicación de escritorio Windows usando Electron.
+
+### Requisitos para compilar
+- Node.js v18 o superior
+- Windows 10/11
+
+### Comandos de compilación
 
 ```bash
-npm run build-win
+# Instalar dependencias (incluyendo Electron)
+npm install
+
+# Compilar el instalador Windows (.exe)
+npm run dist
 ```
 
-El instalador se generará en la carpeta `dist/`
+### Características del ejecutable
 
-**Nota:** También se genera `SistemaInventario.zip` en la misma carpeta, listo para distribuir. El ejecutable pesa aproximadamente 45 MB y el ZIP comprimido ~19 MB.
+- **Modo Híbrido**: Al abrir el .exe, el usuario puede elegir:
+  - **Servidor Base**: Inicia el servidor Node.js/Express y SQLite local. Muestra la IP local para que otros dispositivos se conecten.
+  - **Cliente**: Se conecta a un Servidor Base remoto ingresando su IP.
+- **Base de datos en AppData**: En el .exe, la base de datos se guarda en `%APPDATA%\SistemaInventario\tienda.db` para evitar errores de permisos.
+- **Actualizaciones automáticas**: El .exe consulta automáticamente GitHub en busca de nuevas versiones y permite actualizar con un clic.
+- **Accesos directos**: El instalador NSIS crea accesos directos en el Escritorio y Menú Inicio automáticamente.
+
+### Modo Desarrollo (Node.js)
+
+```bash
+npm start
+```
+
+Abre `http://localhost:3000` en el navegador. En este modo la base de datos se guarda en `data/tienda.db` e incluye datos de prueba.
+
+### Infraestructura para App Móvil (Futuro)
+
+El servidor Express ya tiene configurado `cors` para permitir peticiones desde otros orígenes. En el futuro, una app móvil (APK) en la misma red Wi-Fi podrá conectarse a `http://[IP_SERVIDOR]:3000` consumiendo la misma API REST.
 
 ## 🗄️ Base de Datos
 

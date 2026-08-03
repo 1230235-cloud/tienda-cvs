@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Modo de Operación - Tienda CVS</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #50c0e0 0%, #90c050 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .selector-card {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    .selector-card img {
+      max-width: 100px;
+      max-height: 100px;
+      margin-bottom: 15px;
+    }
+    .selector-card h1 {
+      font-size: 1.4em;
+      color: #1e293b;
+      margin-bottom: 8px;
+    }
+    .selector-card p {
+      color: #64748b;
+      font-size: 0.9em;
+      margin-bottom: 25px;
+    }
+    .mode-btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      margin-bottom: 12px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .mode-btn.primary {
+      background: linear-gradient(135deg, #50c0e0 0%, #90c050 100%);
+      color: white;
+    }
+    .mode-btn.secondary {
+      background: #f1f5f9;
+      color: #1e293b;
+      border: 2px solid #e2e8f0;
+    }
+    .mode-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+    .ip-display {
+      margin-top: 15px;
+      padding: 10px;
+      background: #f8fafc;
+      border-radius: 8px;
+      font-size: 0.85em;
+      color: #334155;
+      display: none;
+    }
+    .ip-display.visible {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="selector-card">
+    <img src="assets/Logo vida sana-02.png" alt="Logo" onerror="this.style.display='none'">
+    <h1>Tienda CVS</h1>
+    <p>Selecciona el modo de operación</p>
+    <button class="mode-btn primary" onclick="selectMode('base')">
+      🖥️ Servidor Base
+    </button>
+    <button class="mode-btn secondary" onclick="selectMode('client')">
+      📱 Cliente
+    </button>
+    <div id="ip-display" class="ip-display"></div>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    function selectMode(mode) {
+      ipcRenderer.send('select-mode', mode);
+    }
+
+    ipcRenderer.on('mode-selected', (event, data) => {
+      const ipDisplay = document.getElementById('ip-display');
+      if (data.mode === 'base') {
+        ipDisplay.innerHTML = `<strong>IP Local:</strong> ${data.ip}<br><span style="font-size:0.8em;color:#64748b;">Otros dispositivos pueden conectarse a esta IP</span>`;
+        ipDisplay.classList.add('visible');
+      }
+    });
+  </script>
+</body>
+</html>
