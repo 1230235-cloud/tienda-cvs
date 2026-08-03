@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Códigos de Barras - Tienda CVS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .barcode-controls {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 20px;
+        }
+
+        .barcode-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 18px;
+        }
+
+        .barcode-card {
+            background: white;
+            border-radius: 12px;
+            padding: 18px;
+            box-shadow: var(--shadow-sm);
+            text-align: center;
+            border: 2px solid var(--gray-200);
+        }
+
+        .barcode-card canvas,
+        .barcode-card svg {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 10px;
+        }
+
+        .barcode-product-name {
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 4px;
+            font-size: 0.95em;
+        }
+
+        .barcode-product-code {
+            color: var(--gray-500);
+            font-size: 0.85em;
+            font-family: monospace;
+            margin-bottom: 4px;
+        }
+
+        .barcode-product-price {
+            color: var(--primary-light);
+            font-weight: 700;
+            font-size: 1em;
+        }
+
+        .barcode-print-area {
+            display: none;
+        }
+
+        .barcode-print-area.visible {
+            display: block;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            .barcode-print-area,
+            .barcode-print-area * {
+                visibility: visible;
+            }
+
+            .barcode-print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                max-width: 100%;
+                background: white;
+                display: block !important;
+            }
+
+            .sidebar,
+            .global-header,
+            .app-wrapper > *:not(.barcode-print-area) {
+                display: none !important;
+            }
+
+            .barcode-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+                padding: 10px;
+            }
+
+            .barcode-card {
+                border: 1px solid #000;
+                box-shadow: none;
+                page-break-inside: avoid;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .barcode-grid {
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-wrapper">
+        <header id="global-header" class="global-header"></header>
+
+        <main class="main-content">
+            <div class="page-title-bar">
+                <div>
+                    <h1>📊 Códigos de Barras - Tienda CVS</h1>
+                    <p class="subtitle">Genera e imprime códigos de barras por tipo de producto</p>
+                </div>
+            </div>
+
+            <div class="barcode-controls no-print">
+                <div class="form-row" style="align-items: flex-end;">
+                    <div class="form-group">
+                        <label>Tipo de Producto / Categoría</label>
+                        <select id="barcode-categoria" class="select-input">
+                            <option value="">Cargando categorías...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Cantidad de etiquetas por producto</label>
+                        <input type="number" id="barcode-cantidad" class="input-control" value="1" min="1" max="500">
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-primary" onclick="generarCodigosBarras()">📊 Generar Códigos</button>
+                        <button class="btn btn-secondary" onclick="imprimirCodigosBarras()" style="margin-top: 8px;">🖨️ Imprimir</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="barcode-preview-area" class="no-print" style="display: none;">
+                <div class="content-box">
+                    <div class="box-header">
+                        <h2>📋 Vista Previa</h2>
+                    </div>
+                    <div id="barcode-preview-grid" class="barcode-grid"></div>
+                </div>
+            </div>
+
+            <div id="barcode-print-area" class="barcode-print-area">
+                <div id="barcode-print-grid" class="barcode-grid"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/codigos-barras.js"></script>
+</body>
+</html>

@@ -188,6 +188,10 @@ function initSidebar() {
                     <span class="sidebar-nav-icon">💰</span>
                     <span>Punto de Venta</span>
                 </a>
+                <a href="codigos-barras.html" class="sidebar-nav-item" data-page="codigos-barras">
+                    <span class="sidebar-nav-icon">📊</span>
+                    <span>Códigos de Barras</span>
+                </a>
                 <a href="cortes.html" class="sidebar-nav-item" data-page="cortes">
                     <span class="sidebar-nav-icon">💵</span>
                     <span>Corte de Caja</span>
