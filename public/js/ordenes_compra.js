@@ -44,7 +44,7 @@ async function loadProductosByProveedor(proveedor) {
     if (!proveedor) return;
 
     try {
-        const res = await apiFetch(`/api/ordenes/productos-bajo-stock-proveedor?proveedor=${encodeURIComponent(proveedor)}`);
+        const res = await apiFetch(`/api/inventario?proveedor=${encodeURIComponent(proveedor)}`);
         if (!res.ok) return;
         const data = await res.json();
         const productos = window.ensureArray(data, 'productos');

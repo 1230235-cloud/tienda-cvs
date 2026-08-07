@@ -483,7 +483,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (this.value === '__nuevo__') {
                 mostrarModalNuevoProveedor();
                 this.value = '';
+                renderProductosGrid(productosCatalogo);
+                return;
             }
+            const proveedorSeleccionado = this.value.trim();
+            if (!proveedorSeleccionado) {
+                renderProductosGrid(productosCatalogo);
+                return;
+            }
+            const filtrados = productosCatalogo.filter(p => (p.proveedor || '').trim() === proveedorSeleccionado);
+            renderProductosGrid(filtrados);
         });
     }
 

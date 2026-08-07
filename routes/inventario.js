@@ -5,7 +5,15 @@ const { verificarAdmin } = require('../middleware');
 
 router.get('/', async (req, res) => {
     try {
-        const productos = await runQuery('SELECT id, codigo, nombre, categoria, precio, precio_publico, precio_cvs, stock_bodega, stock_tienda, activo FROM productos WHERE activo = 1 ORDER BY nombre');
+        const { proveedor } = req.query;
+        let sql = 'SELECT id, codigo, nombre, categoria, precio, precio_publico, precio_cvs, stock_bodega, stock_tienda, activo, proveedor FROM productos WHERE activo = 1';
+        const params = [];
+        if (proveedor) {
+            sql += ' AND proveedor = ?';
+            params.push(proveedor);
+        }
+        sql += ' ORDER BY nombre';
+        const productos = await runQuery(sql, params);
         res.json({ productos });
     } catch (error) {
         res.status(500).json({ error: error.message });
