@@ -91,20 +91,20 @@ function generarCodigosBarras() {
         try {
             JsBarcode(`#${canvasId}`, item.code, {
                 format: 'CODE128',
-                width: 1.5,
-                height: 40,
+                width: 0.75,
+                height: 20,
                 displayValue: true,
-                fontSize: 10,
-                margin: 5
+                fontSize: 5,
+                margin: 2
             });
 
             JsBarcode(`#${printCanvasId}`, item.code, {
                 format: 'CODE128',
-                width: 1.5,
-                height: 40,
+                width: 0.75,
+                height: 20,
                 displayValue: true,
-                fontSize: 10,
-                margin: 5
+                fontSize: 5,
+                margin: 2
             });
         } catch (e) {
             console.error('Error generando código de barras:', e);
@@ -190,14 +190,14 @@ function imprimirCodigosBarras() {
         .print-barcode-grid {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 4px;
             justify-content: center;
         }
         .print-barcode-item {
-            width: 180px;
+            width: 100px;
             text-align: center;
             border: 1px solid #ccc;
-            padding: 8px;
+            padding: 4px;
             page-break-inside: avoid;
             break-inside: avoid;
         }
@@ -209,20 +209,20 @@ function imprimirCodigosBarras() {
         }
         .print-barcode-name {
             font-weight: bold;
-            font-size: 10pt;
-            margin-top: 4px;
+            font-size: 6pt;
+            margin-top: 2px;
             word-wrap: break-word;
         }
         .print-barcode-code {
             font-family: monospace;
-            font-size: 9pt;
+            font-size: 5pt;
             color: #555;
-            margin-top: 2px;
+            margin-top: 1px;
         }
         .print-barcode-price {
             font-weight: bold;
-            font-size: 10pt;
-            margin-top: 2px;
+            font-size: 6pt;
+            margin-top: 1px;
             color: #000;
         }
         .print-actions {

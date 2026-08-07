@@ -254,7 +254,7 @@ function initSidebar() {
         <aside class="sidebar collapsed" id="sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-brand">
-                    <img src="assets/Logo vida sana-02.png" alt="Logo Vida Sana" class="sidebar-logo-img">
+                    <img src="assets/logo-vida-sana.png" alt="Logo Vida Sana" class="sidebar-logo-img">
                 </div>
             </div>
             
@@ -266,6 +266,10 @@ function initSidebar() {
                 <a href="inventario.html" class="sidebar-nav-item" data-page="inventario">
                     <i class="fa-solid fa-boxes-stacked sidebar-nav-icon"></i>
                     <span>Inventario</span>
+                </a>
+                <a href="proveedores.html" class="sidebar-nav-item" data-page="proveedores">
+                    <i class="fa-solid fa-truck sidebar-nav-icon"></i>
+                    <span>Proveedores</span>
                 </a>
                 <a href="entradas.html" class="sidebar-nav-item" data-page="entradas">
                     <i class="fa-solid fa-file-import sidebar-nav-icon"></i>

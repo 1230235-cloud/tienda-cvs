@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Proveedores - Tienda CVS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css?v=1.1">
+</head>
+<body>
+    <div class="app-wrapper">
+        <header id="global-header" class="global-header"></header>
+
+        <main class="main-content">
+            <div class="page-title-bar">
+                <div>
+                    <h1>👥 Gestión de Proveedores</h1>
+                    <p class="subtitle">Administra los proveedores registrados en el sistema</p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="mostrarModalNuevoProveedor()">
+                        ➕ Nuevo Proveedor
+                    </button>
+                </div>
+            </div>
+
+            <div class="content-box">
+                <div class="table-responsive">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Contacto</th>
+                                <th>Teléfono</th>
+                                <th>Observaciones</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="proveedores-body">
+                            <tr><td colspan="6" class="text-center">Cargando proveedores...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Nuevo/Editar Proveedor -->
+    <div id="modal-proveedor" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-proveedor-titulo">➕ Nuevo Proveedor</h3>
+                <button class="modal-close" onclick="cerrarModalProveedor()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-proveedor">
+                    <input type="hidden" id="proveedor-id">
+                    <div class="form-group">
+                        <label>Nombre del Proveedor *</label>
+                        <input type="text" id="proveedor-nombre" required class="input-control" placeholder="Ej: Distribuidora La Esperanza">
+                    </div>
+                    <div class="form-group">
+                        <label>Contacto</label>
+                        <input type="text" id="proveedor-contacto" class="input-control" placeholder="Ej: Juan Pérez">
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <input type="text" id="proveedor-telefono" class="input-control" placeholder="Ej: 961-123-4567">
+                    </div>
+                    <div class="form-group">
+                        <label>Observaciones</label>
+                        <textarea id="proveedor-observaciones" class="input-control" rows="3" placeholder="Notas adicionales..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="cerrarModalProveedor()">Cancelar</button>
+                <button class="btn btn-primary" onclick="guardarProveedor()">💾 Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/proveedores.js"></script>
+</body>
+</html>

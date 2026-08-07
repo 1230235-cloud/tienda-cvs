@@ -278,6 +278,14 @@ async function initializeDatabase() {
     `);
     console.log('Tabla proveedores lista');
 
+    // Migración: agregar observaciones a proveedores si no existe
+    try {
+        await exec('ALTER TABLE proveedores ADD COLUMN observaciones TEXT DEFAULT NULL');
+        console.log('Migración aplicada: columna observaciones agregada a proveedores');
+    } catch (e) {
+        // La columna ya existe o no se puede agregar, ignorar
+    }
+
     // Crear tabla de órdenes de compra
     await exec(`
         CREATE TABLE IF NOT EXISTS ordenes_compra (
