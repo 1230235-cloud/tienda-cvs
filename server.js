@@ -50,8 +50,8 @@ expressApp.use('/api/ordenes', ordenesCompraRoutes);
 expressApp.get('/api/proveedores', (req, res) => {
     db.all('SELECT * FROM proveedores ORDER BY id DESC', [], (err, rows) => {
         if (err) {
-            console.error("Error SELECT proveedores:", err);
-            return res.status(500).json({ error: err.message });
+            console.error("Error GET proveedores:", err);
+            return res.status(500).json({ success: false, error: err.message, proveedores: [] });
         }
         console.log("PROVEEDORES DESDE SQLITE:", rows);
         res.json(rows || []);
