@@ -100,12 +100,17 @@ async function guardarProveedor() {
 
         const data = await response.json();
 
-        if (response.ok) {
-            showToast('Éxito', id ? 'Proveedor actualizado' : 'Proveedor registrado', 'success');
+        if (response.ok && data.success) {
+            showToast('Éxito', data.message || (id ? 'Proveedor actualizado' : 'Proveedor registrado'), 'success');
+            document.getElementById('proveedor-id').value = '';
+            document.getElementById('proveedor-nombre').value = '';
+            document.getElementById('proveedor-contacto').value = '';
+            document.getElementById('proveedor-telefono').value = '';
+            document.getElementById('proveedor-observaciones').value = '';
             cerrarModalProveedor();
             await loadProveedores();
         } else {
-            showToast('Error', data.error || 'No se pudo guardar el proveedor', 'error');
+            showToast('Error', data.error || data.message || 'No se pudo guardar el proveedor', 'error');
         }
     } catch (error) {
         console.error('Error al guardar proveedor:', error);

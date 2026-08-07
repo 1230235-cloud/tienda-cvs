@@ -32,17 +32,18 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
     try {
         const { nombre, contacto, telefono, observaciones } = req.body;
+
         if (!nombre || !nombre.trim()) {
-            return res.status(400).json({ error: 'El nombre del proveedor es requerido' });
+            return res.status(400).json({ success: false, error: 'El nombre del proveedor es requerido' });
         }
 
         const nombreLimpio = nombre.trim();
 
         const existente = await runGet('SELECT id FROM proveedores WHERE nombre = ?', [nombreLimpio]);
         if (existente) {
-            console.log('Proveedor duplicado detectado, retornando existente:', existente.id);
-            return res.json({
+            return res.status(200).json({
                 success: true,
+                message: 'Proveedor ya existente',
                 proveedor: {
                     id: existente.id,
                     nombre: nombreLimpio,
@@ -59,16 +60,17 @@ router.post('/', async (req, res) => {
         );
 
         const nuevoId = result.lastID;
-        console.log('Proveedor creado exitosamente con ID:', nuevoId);
+        console.log('POST /api/proveedores - Insertado con ID:', nuevoId);
 
         if (!nuevoId || nuevoId === 0) {
-            console.error('ERROR: lastID no retornado por SQLite, intentando leer el registro insertado...');
+            console.error('ERROR: lastID no retornado, leyendo registro insertado...');
             const recienCreado = await runGet('SELECT * FROM proveedores WHERE nombre = ? ORDER BY id DESC LIMIT 1', [nombreLimpio]);
             if (!recienCreado) {
-                return res.status(500).json({ error: 'No se pudo confirmar la inserción del proveedor' });
+                return res.status(500).json({ success: false, error: 'No se pudo confirmar la inserción del proveedor' });
             }
-            return res.status(201).json({
+            return res.status(200).json({
                 success: true,
+                message: 'Proveedor guardado correctamente',
                 proveedor: {
                     id: recienCreado.id,
                     nombre: recienCreado.nombre,
@@ -79,8 +81,9 @@ router.post('/', async (req, res) => {
             });
         }
 
-        res.status(201).json({
+        return res.status(200).json({
             success: true,
+            message: 'Proveedor guardado correctamente',
             proveedor: {
                 id: nuevoId,
                 nombre: nombreLimpio,
@@ -91,7 +94,7 @@ router.post('/', async (req, res) => {
         });
     } catch (error) {
         console.error('ERROR CRÍTICO EN POST /api/proveedores:', error);
-        res.status(500).json({ error: error.message });
+        return res.status(500).json({ success: false, error: error.message });
     }
 });
 
