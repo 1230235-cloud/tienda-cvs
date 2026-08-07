@@ -4,6 +4,7 @@ const path = require('path');
 const os = require('os');
 const db = require('./database');
 const bonjour = require('bonjour')();
+const { queryAll, queryRun } = require('./database');
 
 const isPackaged = !!process.env.USER_DATA_PATH;
 const basePath = isPackaged ? process.resourcesPath : __dirname;
@@ -47,51 +48,42 @@ expressApp.use('/api/ordenes', ordenesCompraRoutes);
 // =====================================
 
 // GET: Obtener todos los proveedores
-expressApp.get('/api/proveedores', (req, res) => {
+expressApp.get('/api/proveedores', async (req, res) => {
     try {
-        db.all('SELECT * FROM proveedores ORDER BY id DESC', [], (err, rows) => {
-            if (err) {
-                console.error("Error SQL SELECT proveedores:", err.message);
-                return res.json([]);
-            }
-            console.log("PROVEEDORES DESDE SQLITE:", rows);
-            res.json(rows || []);
-        });
-    } catch (error) {
-        console.error("Excepción en GET /api/proveedores:", error);
+        const rows = await queryAll('SELECT * FROM proveedores ORDER BY id DESC');
+        res.json(rows || []);
+    } catch (err) {
+        console.error("Error en GET /api/proveedores:", err.message);
         res.json([]);
     }
 });
 
 // POST: Guardar nuevo proveedor
-expressApp.post('/api/proveedores', (req, res) => {
+expressApp.post('/api/proveedores', async (req, res) => {
     try {
         const { nombre, contacto, telefono, observaciones } = req.body;
         if (!nombre) {
             return res.status(400).json({ error: "El nombre es obligatorio" });
         }
-        const sql = 'INSERT INTO proveedores (nombre, contacto, telefono, observaciones) VALUES (?, ?, ?, ?)';
-        db.run(sql, [nombre, contacto || '-', telefono || '-', observaciones || '-'], function(err) {
-            if (err) {
-                console.error("Error SQL INSERT proveedores:", err.message);
-                return res.status(500).json({ error: err.message });
-            }
-            console.log("PROVEEDOR INSERTADO CON ID:", this.lastID);
-            res.status(201).json({ id: this.lastID, nombre, contacto, telefono, observaciones });
-        });
-    } catch (error) {
-        console.error("Excepción en POST /api/proveedores:", error);
-        res.status(500).json({ error: error.message });
+        const result = await queryRun(
+            'INSERT INTO proveedores (nombre, contacto, telefono, observaciones) VALUES (?, ?, ?, ?)',
+            [nombre, contacto || '-', telefono || '-', observaciones || '-']
+        );
+        res.status(201).json({ id: result?.lastInsertRowid || result?.lastID || Date.now(), nombre, contacto, telefono, observaciones });
+    } catch (err) {
+        console.error("Error en POST /api/proveedores:", err.message);
+        res.status(500).json({ error: err.message });
     }
 });
 
 // DELETE: Eliminar proveedor
-expressApp.delete('/api/proveedores/:id', (req, res) => {
-    const { id } = req.params;
-    db.run('DELETE FROM proveedores WHERE id = ?', [id], function(err) {
-        if (err) return res.status(500).json({ error: err.message });
+expressApp.delete('/api/proveedores/:id', async (req, res) => {
+    try {
+        await queryRun('DELETE FROM proveedores WHERE id = ?', [req.params.id]);
         res.json({ message: "Proveedor eliminado" });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Servir archivos estáticos

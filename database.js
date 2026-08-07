@@ -19,22 +19,38 @@ const db = new sqlite3.Database(dbPath, (err) => {
         console.error("Error al conectar con SQLite:", err.message);
     } else {
         console.log("Base de datos SQLite conectada en:", dbPath);
-        
-        db.run(`
-            CREATE TABLE IF NOT EXISTS proveedores (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nombre TEXT NOT NULL,
-                contacto TEXT DEFAULT '-',
-                telefono TEXT DEFAULT '-',
-                observaciones TEXT DEFAULT '-',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        `, (err) => {
-            if (err) console.error("Error en CREATE TABLE proveedores:", err.message);
-            else console.log("Tabla 'proveedores' verificada/creada correctamente.");
-        });
     }
 });
+
+// Helper para ejecutar un query de lectura (SELECT)
+function queryAll(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        if (typeof db.all === 'function') {
+            db.all(sql, params, (err, rows) => err ? reject(err) : resolve(rows));
+        } else if (typeof db.prepare === 'function') {
+            try { resolve(db.prepare(sql).all(...params)); } catch(e) { reject(e); }
+        } else if (typeof db.exec === 'function') {
+            try { resolve(db.exec(sql)); } catch(e) { reject(e); }
+        } else {
+            reject(new Error("Método de lectura de BD no soportado"));
+        }
+    });
+}
+
+// Helper para ejecutar escritura (INSERT / UPDATE / DELETE)
+function queryRun(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        if (typeof db.run === 'function') {
+            db.run(sql, params, function(err) { err ? reject(err) : resolve(this); });
+        } else if (typeof db.prepare === 'function') {
+            try { resolve(db.prepare(sql).run(...params)); } catch(e) { reject(e); }
+        } else if (typeof db.exec === 'function') {
+            try { resolve(db.exec(sql)); } catch(e) { reject(e); }
+        } else {
+            reject(new Error("Método de escritura de BD no soportado"));
+        }
+    });
+}
 
 function runQuery(sql, params = []) {
     return new Promise((resolve, reject) => {
@@ -374,4 +390,4 @@ async function initializeDatabase() {
 
 db.initializeDatabase = initializeDatabase;
 
-module.exports = { db, runQuery, runGet, runRun, exec, initializeDatabase };
+module.exports = { db, runQuery, runGet, runRun, exec, initializeDatabase, queryAll, queryRun };
