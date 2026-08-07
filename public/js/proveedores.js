@@ -103,7 +103,7 @@ async function guardarProveedor() {
         if (response.ok) {
             showToast('Éxito', id ? 'Proveedor actualizado' : 'Proveedor registrado', 'success');
             cerrarModalProveedor();
-            loadProveedores();
+            await loadProveedores();
         } else {
             showToast('Error', data.error || 'No se pudo guardar el proveedor', 'error');
         }

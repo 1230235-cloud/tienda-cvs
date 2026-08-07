@@ -36,20 +36,54 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ error: 'El nombre del proveedor es requerido' });
         }
 
-        const existente = await runGet('SELECT id FROM proveedores WHERE nombre = ?', [nombre.trim()]);
+        const nombreLimpio = nombre.trim();
+
+        const existente = await runGet('SELECT id FROM proveedores WHERE nombre = ?', [nombreLimpio]);
         if (existente) {
-            return res.json({ proveedor: { id: existente.id, nombre: nombre.trim(), contacto, telefono, observaciones } });
+            console.log('Proveedor duplicado detectado, retornando existente:', existente.id);
+            return res.json({
+                success: true,
+                proveedor: {
+                    id: existente.id,
+                    nombre: nombreLimpio,
+                    contacto: contacto || '',
+                    telefono: telefono || '',
+                    observaciones: observaciones || ''
+                }
+            });
         }
 
         const result = await runRun(
             'INSERT INTO proveedores (nombre, contacto, telefono, observaciones) VALUES (?, ?, ?, ?)',
-            [nombre.trim(), contacto || '', telefono || '', observaciones || '']
+            [nombreLimpio, contacto || '', telefono || '', observaciones || '']
         );
 
+        const nuevoId = result.lastID;
+        console.log('Proveedor creado exitosamente con ID:', nuevoId);
+
+        if (!nuevoId || nuevoId === 0) {
+            console.error('ERROR: lastID no retornado por SQLite, intentando leer el registro insertado...');
+            const recienCreado = await runGet('SELECT * FROM proveedores WHERE nombre = ? ORDER BY id DESC LIMIT 1', [nombreLimpio]);
+            if (!recienCreado) {
+                return res.status(500).json({ error: 'No se pudo confirmar la inserción del proveedor' });
+            }
+            return res.status(201).json({
+                success: true,
+                proveedor: {
+                    id: recienCreado.id,
+                    nombre: recienCreado.nombre,
+                    contacto: recienCreado.contacto || '',
+                    telefono: recienCreado.telefono || '',
+                    observaciones: recienCreado.observaciones || ''
+                }
+            });
+        }
+
         res.status(201).json({
+            success: true,
             proveedor: {
-                id: result.lastID,
-                nombre: nombre.trim(),
+                id: nuevoId,
+                nombre: nombreLimpio,
                 contacto: contacto || '',
                 telefono: telefono || '',
                 observaciones: observaciones || ''
