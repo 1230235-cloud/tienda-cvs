@@ -5,35 +5,51 @@ const API_BASE = 'http://localhost:3000';
 async function loadProveedores() {
     try {
         const res = await fetch(`${API_BASE}/api/proveedores`);
-        const data = await res.json();
-        console.log("DATOS PROVEEDORES CARGADOS:", data);
+        const rawData = await res.json();
+        console.log("DATOS RECIBIDOS DEL BACKEND:", rawData);
 
-        const lista = Array.isArray(data) ? data : (data.proveedores || data.data || []);
+        let lista = [];
+        if (Array.isArray(rawData)) {
+            lista = rawData;
+        } else if (rawData && typeof rawData === 'object') {
+            lista = rawData.proveedores || rawData.data || rawData.rows || rawData.result || [];
+        }
+
         const tbody = document.getElementById('tablaProveedores');
-
-        if (!tbody) return;
-
-        if (lista.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="text-center">No hay proveedores registrados</td></tr>`;
+        if (!tbody) {
+            console.error("No se encontró el elemento HTML con id='tablaProveedores'");
             return;
         }
 
-        tbody.innerHTML = lista.map(p => `
-            <tr>
-                <td>${p.id || ''}</td>
-                <td><strong>${p.nombre || ''}</strong></td>
-                <td>${p.contacto || '-'}</td>
-                <td>${p.telefono || '-'}</td>
-                <td>${p.observaciones || '-'}</td>
-                <td>
-                    <button onclick="editarProveedor(${p.id})" class="btn-sm btn-warning">✏️ Editar</button>
-                    <button onclick="eliminarProveedor(${p.id})" class="btn-sm btn-danger">🗑️ Eliminar</button>
-                </td>
-            </tr>
-        `).join('');
+        if (!Array.isArray(lista) || lista.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4">No hay proveedores registrados</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = lista.map(p => {
+            const id = p.id || p.id_proveedor || p.proveedor_id || '';
+            const nombre = p.nombre || p.nombre_proveedor || p.razon_social || 'Sin nombre';
+            const contacto = p.contacto || p.nombre_contacto || '-';
+            const telefono = p.telefono || p.tel || p.celular || '-';
+            const observaciones = p.observaciones || p.notas || p.descripcion || '-';
+
+            return `
+                <tr>
+                    <td>${id}</td>
+                    <td><strong>${nombre}</strong></td>
+                    <td>${contacto}</td>
+                    <td>${telefono}</td>
+                    <td>${observaciones}</td>
+                    <td>
+                        <button onclick="editarProveedor(${id})" class="btn btn-sm btn-warning me-1">✏️ Editar</button>
+                        <button onclick="eliminarProveedor(${id})" class="btn btn-sm btn-danger">🗑️ Eliminar</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
 
     } catch (err) {
-        console.error("Error al cargar proveedores en tabla:", err);
+        console.error("Error al renderizar proveedores:", err);
     }
 }
 
