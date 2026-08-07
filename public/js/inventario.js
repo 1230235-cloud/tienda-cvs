@@ -20,6 +20,30 @@ async function loadProductos() {
     }
 }
 
+async function loadProveedoresForSelect(selectId, selectedValue) {
+    try {
+        const response = await apiFetch('/api/proveedores');
+        if (!response.ok) return;
+        const data = await response.json();
+        const proveedores = Array.isArray(data) ? data : (data.proveedores || []);
+        const select = document.getElementById(selectId);
+        if (!select) return;
+
+        select.innerHTML = '<option value="">Seleccionar proveedor...</option>';
+        proveedores.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.nombre;
+            opt.textContent = p.nombre;
+            if (selectedValue && p.nombre === selectedValue) {
+                opt.selected = true;
+            }
+            select.appendChild(opt);
+        });
+    } catch (error) {
+        console.error('Error al cargar proveedores para select:', error);
+    }
+}
+
 function updateInventoryMetrics() {
     const totalSkus = todosProductos.length;
     let totalUnits = 0;
@@ -273,7 +297,9 @@ async function abrirModalEditarProducto(productoId) {
         document.getElementById('edit-nombre').value = producto.nombre || '';
         document.getElementById('edit-codigo').value = producto.codigo || '';
         document.getElementById('edit-categoria').value = producto.categoria || '';
-        document.getElementById('edit-proveedor').value = producto.proveedor || '';
+        
+        await loadProveedoresForSelect('productoProveedor', producto.proveedor);
+        
         document.getElementById('edit-precio-publico').value = producto.precio_publico || producto.precio || '';
         document.getElementById('edit-precio-cvs').value = producto.precio_cvs || '';
         document.getElementById('edit-precio').value = producto.precio || '';
@@ -311,7 +337,7 @@ async function guardarEdicionProducto() {
         nombre,
         codigo,
         categoria: document.getElementById('edit-categoria').value.trim(),
-        proveedor: document.getElementById('edit-proveedor').value.trim(),
+        proveedor: document.getElementById('productoProveedor').value.trim(),
         precio_publico: parseFloat(document.getElementById('edit-precio-publico').value) || 0,
         precio_cvs: parseFloat(document.getElementById('edit-precio-cvs').value) || 0,
         precio: parseFloat(document.getElementById('edit-precio').value) || 0,
