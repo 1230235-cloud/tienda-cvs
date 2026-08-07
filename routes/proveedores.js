@@ -54,13 +54,14 @@ router.post('/', async (req, res) => {
             });
         }
 
+        console.log('Insertando proveedor:', nombreLimpio, '| contacto:', contacto, '| telefono:', telefono);
         const result = await runRun(
             'INSERT INTO proveedores (nombre, contacto, telefono, observaciones) VALUES (?, ?, ?, ?)',
             [nombreLimpio, contacto || '', telefono || '', observaciones || '']
         );
 
         const nuevoId = result.lastID;
-        console.log('POST /api/proveedores - Insertado con ID:', nuevoId);
+        console.log('POST /api/proveedores - Insertado con ID:', nuevoId, '| changes:', result.changes);
 
         if (!nuevoId || nuevoId === 0) {
             console.error('ERROR: lastID no retornado, leyendo registro insertado...');

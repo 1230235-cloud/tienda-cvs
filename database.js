@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 
-const userDataPath = process.env.USER_DATA_PATH || process.env.TIENDA_DATA_DIR || path.join(__dirname, 'data');
+const userDataPath = process.env.USER_DATA_PATH || process.env.TIENDA_DATA_DIR || process.env.APPDATA || path.join(__dirname, 'data');
 
 if (!fs.existsSync(userDataPath)) {
     fs.mkdirSync(userDataPath, { recursive: true });
@@ -11,7 +11,7 @@ if (!fs.existsSync(userDataPath)) {
 
 const dbPath = path.join(userDataPath, 'database.sqlite');
 
-console.log('SQLite DB path:', dbPath);
+console.log('RUTA ÚNICA DE BASE DE DATOS:', dbPath);
 console.log('DB file exists before open:', fs.existsSync(dbPath));
 
 const db = new sqlite3.Database(dbPath, (err) => {
