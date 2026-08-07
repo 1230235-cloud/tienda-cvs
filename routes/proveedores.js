@@ -4,7 +4,7 @@ const { runGet, runRun } = require('../database');
 
 router.get('/', async (req, res) => {
     try {
-        const proveedores = await runQuery('SELECT id, nombre, contacto, telefono, observaciones FROM proveedores ORDER BY nombre');
+        const proveedores = await runQuery('SELECT * FROM proveedores ORDER BY nombre');
         res.json({ proveedores });
     } catch (error) {
         res.status(500).json({ error: error.message });

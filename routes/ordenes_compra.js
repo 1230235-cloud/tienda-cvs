@@ -58,7 +58,7 @@ router.get('/productos-bajo-stock-proveedor', async (req, res) => {
     }
 });
 
-router.get('/ordenes', async (req, res) => {
+router.get('/', async (req, res) => {
     try {
         const ordenes = await runQuery('SELECT * FROM ordenes_compra ORDER BY fecha DESC');
         res.json({ ordenes });
@@ -67,7 +67,7 @@ router.get('/ordenes', async (req, res) => {
     }
 });
 
-router.get('/ordenes/:id', async (req, res) => {
+router.get('/:id', async (req, res) => {
     try {
         const orden = await runGet('SELECT * FROM ordenes_compra WHERE id = ?', [req.params.id]);
         if (!orden) {
@@ -80,7 +80,7 @@ router.get('/ordenes/:id', async (req, res) => {
     }
 });
 
-router.post('/ordenes', verificarAdmin, async (req, res) => {
+router.post('/', verificarAdmin, async (req, res) => {
     try {
         const { proveedor, solicita, autoriza, detalles } = req.body;
 
@@ -125,7 +125,7 @@ router.post('/ordenes', verificarAdmin, async (req, res) => {
     }
 });
 
-router.put('/ordenes/:id/estado', verificarAdmin, async (req, res) => {
+router.put('/:id/estado', verificarAdmin, async (req, res) => {
     try {
         const { estado } = req.body;
         const validEstados = ['PENDIENTE', 'APROBADA', 'RECHAZADA', 'RECIBIDA', 'CERRADA'];
@@ -141,7 +141,7 @@ router.put('/ordenes/:id/estado', verificarAdmin, async (req, res) => {
     }
 });
 
-router.delete('/ordenes/:id', verificarAdmin, async (req, res) => {
+router.delete('/:id', verificarAdmin, async (req, res) => {
     try {
         await runRun('DELETE FROM ordenes_compra WHERE id = ?', [req.params.id]);
         res.json({ mensaje: 'Orden eliminada' });

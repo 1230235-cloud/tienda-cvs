@@ -273,18 +273,11 @@ async function initializeDatabase() {
             nombre TEXT NOT NULL UNIQUE,
             contacto TEXT,
             telefono TEXT,
-            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
+            observaciones TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `);
     console.log('Tabla proveedores lista');
-
-    // Migración: agregar observaciones a proveedores si no existe
-    try {
-        await exec('ALTER TABLE proveedores ADD COLUMN observaciones TEXT DEFAULT NULL');
-        console.log('Migración aplicada: columna observaciones agregada a proveedores');
-    } catch (e) {
-        // La columna ya existe o no se puede agregar, ignorar
-    }
 
     // Crear tabla de órdenes de compra
     await exec(`
