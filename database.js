@@ -270,18 +270,19 @@ async function initializeDatabase() {
         // Las columnas ya existen o no se pueden agregar, ignorar
     }
 
-    // Crear tabla de proveedores
+    // Recrear tabla de proveedores limpia
+    await exec(`DROP TABLE IF EXISTS proveedores`);
     await exec(`
-        CREATE TABLE IF NOT EXISTS proveedores (
+        CREATE TABLE proveedores (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre TEXT NOT NULL UNIQUE,
+            nombre TEXT NOT NULL,
             contacto TEXT,
             telefono TEXT,
             observaciones TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `);
-    console.log('Tabla proveedores lista');
+    console.log('Tabla proveedores recreada limpiamente');
 
     // Crear tabla de órdenes de compra
     await exec(`
