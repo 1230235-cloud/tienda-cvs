@@ -1,18 +1,17 @@
 // Módulo de Gestión de Proveedores
 
+const API_BASE = 'http://localhost:3000';
+
 async function loadProveedores() {
     try {
-        const res = await fetch('/api/proveedores');
+        const res = await fetch(`${API_BASE}/api/proveedores`);
         const data = await res.json();
-        console.log("DATOS RECIBIDOS DEL SERVIDOR:", data);
+        console.log("DATOS PROVEEDORES CARGADOS:", data);
 
         const lista = Array.isArray(data) ? data : (data.proveedores || data.data || []);
         const tbody = document.getElementById('tablaProveedores');
 
-        if (!tbody) {
-            console.error("No se encontró el elemento #tablaProveedores en el HTML");
-            return;
-        }
+        if (!tbody) return;
 
         if (lista.length === 0) {
             tbody.innerHTML = `<tr><td colspan="6" class="text-center">No hay proveedores registrados</td></tr>`;
@@ -54,7 +53,7 @@ function cerrarModalProveedor() {
 
 async function editarProveedor(id) {
     try {
-        const response = await apiFetch(`/api/proveedores/${id}`);
+        const response = await apiFetch(`${API_BASE}/api/proveedores/${id}`);
         if (!response.ok) {
             showToast('Error', 'No se pudo cargar el proveedor', 'error');
             return;
@@ -88,7 +87,7 @@ async function guardarProveedor() {
 
     try {
         const method = id ? 'PUT' : 'POST';
-        const url = id ? `/api/proveedores/${id}` : '/api/proveedores';
+        const url = id ? `${API_BASE}/api/proveedores/${id}` : `${API_BASE}/api/proveedores`;
 
         const response = await apiFetch(url, {
             method,
@@ -118,7 +117,7 @@ async function guardarProveedor() {
 
 async function eliminarProveedor(id) {
     try {
-        const response = await apiFetch(`/api/proveedores/${id}`);
+        const response = await apiFetch(`${API_BASE}/api/proveedores/${id}`);
         if (!response.ok) {
             showToast('Error', 'No se pudo cargar el proveedor', 'error');
             return;
@@ -130,7 +129,7 @@ async function eliminarProveedor(id) {
             return;
         }
 
-        const delRes = await apiFetch(`/api/proveedores/${id}`, { method: 'DELETE' });
+        const delRes = await apiFetch(`${API_BASE}/api/proveedores/${id}`, { method: 'DELETE' });
         const delData = await delRes.json();
 
         if (delRes.ok) {
