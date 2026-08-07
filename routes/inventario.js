@@ -48,7 +48,7 @@ router.put('/:id', verificarAdmin, async (req, res) => {
             return res.status(404).json({ error: 'Producto no encontrado' });
         }
 
-        const { nombre, codigo, categoria, precio, precio_publico, precio_cvs, stock_minimo, proveedor } = req.body;
+        const { nombre, codigo, categoria, precio, precio_publico, precio_cvs, stock_minimo, proveedor, stock_bodega } = req.body;
 
         await runRun(`
             UPDATE productos SET
@@ -60,6 +60,7 @@ router.put('/:id', verificarAdmin, async (req, res) => {
                 precio_cvs = ?,
                 stock_minimo = ?,
                 proveedor = ?,
+                stock_bodega = ?,
                 fecha_actualizacion = CURRENT_TIMESTAMP
             WHERE id = ?
         `, [
@@ -71,6 +72,7 @@ router.put('/:id', verificarAdmin, async (req, res) => {
             precio_cvs ?? producto.precio_cvs,
             stock_minimo ?? producto.stock_minimo,
             proveedor ?? producto.proveedor,
+            stock_bodega ?? producto.stock_bodega,
             id
         ]);
 

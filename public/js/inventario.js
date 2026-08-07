@@ -278,6 +278,7 @@ async function abrirModalEditarProducto(productoId) {
         document.getElementById('edit-precio-cvs').value = producto.precio_cvs || '';
         document.getElementById('edit-precio').value = producto.precio || '';
         document.getElementById('edit-stock-minimo').value = producto.stock_minimo || 5;
+        document.getElementById('edit-stock').value = (parseInt(producto.stock_bodega) || 0) + (parseInt(producto.stock_tienda) || 0);
 
         const modal = document.getElementById('modal-editar-producto');
         if (modal) {
@@ -314,7 +315,8 @@ async function guardarEdicionProducto() {
         precio_publico: parseFloat(document.getElementById('edit-precio-publico').value) || 0,
         precio_cvs: parseFloat(document.getElementById('edit-precio-cvs').value) || 0,
         precio: parseFloat(document.getElementById('edit-precio').value) || 0,
-        stock_minimo: parseInt(document.getElementById('edit-stock-minimo').value) || 5
+        stock_minimo: parseInt(document.getElementById('edit-stock-minimo').value) || 5,
+        stock_bodega: parseInt(document.getElementById('edit-stock').value) || 0
     };
 
     try {

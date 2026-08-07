@@ -11,11 +11,15 @@ if (!fs.existsSync(userDataPath)) {
 
 const dbPath = path.join(userDataPath, 'database.sqlite');
 
+console.log('SQLite DB path:', dbPath);
+console.log('DB file exists before open:', fs.existsSync(dbPath));
+
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('Error abriendo la base de datos:', err.message);
         throw err;
     }
+    console.log('SQLite conexion OK en:', dbPath);
 });
 
 function runQuery(sql, params = []) {
