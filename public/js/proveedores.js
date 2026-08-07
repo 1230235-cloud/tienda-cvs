@@ -89,15 +89,17 @@ async function editarProveedor(id) {
     }
 }
 
-async function guardarProveedor() {
+async function guardarProveedor(event) {
+    if (event) event.preventDefault();
+
     const id = document.getElementById('proveedor-id').value;
     const nombre = document.getElementById('proveedor-nombre').value.trim();
-    const contacto = document.getElementById('proveedor-contacto').value.trim();
-    const telefono = document.getElementById('proveedor-telefono').value.trim();
-    const observaciones = document.getElementById('proveedor-observaciones').value.trim();
+    const contacto = document.getElementById('proveedor-contacto').value.trim() || '-';
+    const telefono = document.getElementById('proveedor-telefono').value.trim() || '-';
+    const observaciones = document.getElementById('proveedor-observaciones').value.trim() || '-';
 
     if (!nombre) {
-        showToast('Campo Requerido', 'Ingresa el nombre del proveedor', 'warning');
+        alert("Por favor ingrese el nombre del proveedor");
         return;
     }
 
@@ -105,29 +107,30 @@ async function guardarProveedor() {
         const method = id ? 'PUT' : 'POST';
         const url = id ? `${API_BASE}/api/proveedores/${id}` : `${API_BASE}/api/proveedores`;
 
-        const response = await apiFetch(url, {
+        const res = await apiFetch(url, {
             method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nombre, contacto, telefono, observaciones })
         });
 
-        const data = await response.json();
+        if (res.ok || res.status === 200 || res.status === 201) {
+            alert("✅ Proveedor guardado correctamente");
 
-        if (response.ok && data.success) {
-            showToast('Éxito', data.message || (id ? 'Proveedor actualizado' : 'Proveedor registrado'), 'success');
             document.getElementById('proveedor-id').value = '';
             document.getElementById('proveedor-nombre').value = '';
             document.getElementById('proveedor-contacto').value = '';
             document.getElementById('proveedor-telefono').value = '';
             document.getElementById('proveedor-observaciones').value = '';
+
             cerrarModalProveedor();
             await loadProveedores();
         } else {
-            showToast('Error', data.error || data.message || 'No se pudo guardar el proveedor', 'error');
+            const errData = await res.json().catch(() => ({}));
+            alert("❌ Error al guardar proveedor: " + (errData.error || "Error en el servidor"));
         }
-    } catch (error) {
-        console.error('Error al guardar proveedor:', error);
-        showToast('Error de Conexión', 'No se pudo guardar el proveedor', 'error');
+    } catch (err) {
+        console.error("Error guardando proveedor:", err);
+        alert("❌ Error de conexión al guardar el proveedor");
     }
 }
 
