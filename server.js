@@ -48,31 +48,41 @@ expressApp.use('/api/ordenes', ordenesCompraRoutes);
 
 // GET: Obtener todos los proveedores
 expressApp.get('/api/proveedores', (req, res) => {
-    db.all('SELECT * FROM proveedores ORDER BY id DESC', [], (err, rows) => {
-        if (err) {
-            console.error("Error GET proveedores:", err);
-            return res.status(500).json({ success: false, error: err.message, proveedores: [] });
-        }
-        console.log("PROVEEDORES DESDE SQLITE:", rows);
-        res.json(rows || []);
-    });
+    try {
+        db.all('SELECT * FROM proveedores ORDER BY id DESC', [], (err, rows) => {
+            if (err) {
+                console.error("Error SQL SELECT proveedores:", err.message);
+                return res.json([]);
+            }
+            console.log("PROVEEDORES DESDE SQLITE:", rows);
+            res.json(rows || []);
+        });
+    } catch (error) {
+        console.error("Excepción en GET /api/proveedores:", error);
+        res.json([]);
+    }
 });
 
 // POST: Guardar nuevo proveedor
 expressApp.post('/api/proveedores', (req, res) => {
-    const { nombre, contacto, telefono, observaciones } = req.body;
-    if (!nombre) {
-        return res.status(400).json({ error: "El nombre es obligatorio" });
-    }
-    const sql = 'INSERT INTO proveedores (nombre, contacto, telefono, observaciones) VALUES (?, ?, ?, ?)';
-    db.run(sql, [nombre, contacto, telefono, observaciones], function(err) {
-        if (err) {
-            console.error("Error INSERT proveedor:", err);
-            return res.status(500).json({ error: err.message });
+    try {
+        const { nombre, contacto, telefono, observaciones } = req.body;
+        if (!nombre) {
+            return res.status(400).json({ error: "El nombre es obligatorio" });
         }
-        console.log("PROVEEDOR INSERTADO CON ID:", this.lastID);
-        res.status(201).json({ id: this.lastID, nombre, contacto, telefono, observaciones });
-    });
+        const sql = 'INSERT INTO proveedores (nombre, contacto, telefono, observaciones) VALUES (?, ?, ?, ?)';
+        db.run(sql, [nombre, contacto || '-', telefono || '-', observaciones || '-'], function(err) {
+            if (err) {
+                console.error("Error SQL INSERT proveedores:", err.message);
+                return res.status(500).json({ error: err.message });
+            }
+            console.log("PROVEEDOR INSERTADO CON ID:", this.lastID);
+            res.status(201).json({ id: this.lastID, nombre, contacto, telefono, observaciones });
+        });
+    } catch (error) {
+        console.error("Excepción en POST /api/proveedores:", error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // DELETE: Eliminar proveedor

@@ -16,10 +16,24 @@ console.log('DB file exists before open:', fs.existsSync(dbPath));
 
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
-        console.error('Error abriendo la base de datos:', err.message);
-        throw err;
+        console.error("Error al conectar con SQLite:", err.message);
+    } else {
+        console.log("Base de datos SQLite conectada en:", dbPath);
+        
+        db.run(`
+            CREATE TABLE IF NOT EXISTS proveedores (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT NOT NULL,
+                contacto TEXT DEFAULT '-',
+                telefono TEXT DEFAULT '-',
+                observaciones TEXT DEFAULT '-',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `, (err) => {
+            if (err) console.error("Error en CREATE TABLE proveedores:", err.message);
+            else console.log("Tabla 'proveedores' verificada/creada correctamente.");
+        });
     }
-    console.log('SQLite conexion OK en:', dbPath);
 });
 
 function runQuery(sql, params = []) {
