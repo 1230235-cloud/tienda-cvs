@@ -15,18 +15,26 @@
         <header id="global-header" class="global-header"></header>
 
         <main class="main-content">
-            <div class="page-title-bar">
-                <div>
-                    <h1>📦 Inventario Tienda CVS</h1>
-                    <p class="subtitle">Consulta de existencias actuales y productos disponibles en tienda</p>
+<div class="page-title-bar">
+                    <div>
+                        <h1>📦 Inventario Tienda CVS</h1>
+                        <p class="subtitle">Gestión de stock en Bodega y Tienda — use las pestañas para ver y mover existencias</p>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <a href="entradas.html" class="btn btn-primary btn-lg">
+                            📥 + Surtir Stock / Agregar Producto Nuevo
+                        </a>
+                        <button id="btnImprimirInventario" class="btn btn-secondary" onclick="imprimirInventario()">
+                            🖨️ Imprimir Reporte
+                        </button>
+                        <button class="btn btn-primary" onclick="imprimirInventarioGeneral()">
+                            📋 Reporte General de Inventario
+                        </button>
+                    </div>
                 </div>
-                <a href="entradas.html" class="btn btn-primary btn-lg">
-                    📥 + Surtir Stock / Agregar Producto Nuevo
-                </a>
-            </div>
 
             <div class="notice-info-bar">
-                <span>ℹ️ <strong>Nota:</strong> Los productos nuevos y la adición de existencias se registran únicamente desde el módulo de <a href="entradas.html">Entradas de Mercancía</a>.</span>
+                <span>ℹ️ <strong>Nota:</strong> Los productos nuevos se registran desde <a href="entradas.html">Entradas de Mercancía</a>. Para agregar stock existente a Bodega, use el botón ➕ en la pestaña de Bodega. Para mover stock de Bodega a Tienda, use el botón 🚚 Mover.</span>
             </div>
 
             <!-- Metrics bar -->
@@ -67,6 +75,13 @@
                         <label>Categoría</label>
                         <select id="filtro-categoria" class="select-input">
                             <option value="">Todas las categorías</option>
+                            <option value="Suplementos y Vitaminas">Suplementos y Vitaminas</option>
+                            <option value="Ropa y Accesorios">Ropa y Accesorios</option>
+                            <option value="Colpac">Colpac</option>
+                            <option value="Agua y Suero">Agua y Suero</option>
+                            <option value="Semillas">Semillas</option>
+                            <option value="Infusiones">Infusiones</option>
+                            <option value="Pan y Galletas">Pan y Galletas</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -81,29 +96,108 @@
                 </div>
             </div>
 
-            <!-- Table section -->
-            <div class="content-box">
-                <div class="table-responsive">
-                    <table class="modern-table">
-                        <thead>
-                            <tr>
-                                <th>Código</th>
-                                <th>Producto</th>
-                                <th>Categoría</th>
-                                <th>Precio Venta</th>
-                                <th>Stock Actual</th>
-                                <th>Stock Mínimo</th>
-                                <th>Estado</th>
-                                <th>Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody id="productos-body">
-                            <tr><td colspan="8" class="text-center">Cargando inventario de la tienda...</td></tr>
-                        </tbody>
-                    </table>
+            <!-- Tabs -->
+            <div class="tabs-container">
+                <button class="tab-btn active" onclick="switchTab('bodega')" id="tab-bodega">
+                    📦 Inventario de Bodega (Almacén)
+                </button>
+                <button class="tab-btn" onclick="switchTab('tienda')" id="tab-tienda">
+                    🏪 Inventario de Tienda (Piso de Venta)
+                </button>
+            </div>
+
+            <!-- Bodega Table -->
+            <div id="panel-bodega" class="tab-panel">
+                <div class="content-box">
+                    <div class="table-responsive">
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Producto</th>
+                                    <th>Categoría</th>
+                                    <th>Stock Bodega</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bodega-body">
+                                <tr><td colspan="6" class="text-center">Cargando inventario de bodega...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tienda Table -->
+            <div id="panel-tienda" class="tab-panel" style="display: none;">
+                <div class="content-box">
+                    <div class="table-responsive">
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Producto</th>
+                                    <th>Categoría</th>
+                                    <th>Precio Venta</th>
+                                    <th>Stock Tienda</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tienda-body">
+                                <tr><td colspan="7" class="text-center">Cargando inventario de tienda...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Modal de Traspaso -->
+    <div id="modal-traspaso" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🚚 Traspaso de Stock</h3>
+                <button class="modal-close" onclick="cerrarModalTraspaso()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="traspaso-producto-nombre"></p>
+                <p>¿Cuántas unidades deseas mover de <strong>Bodega</strong> a <strong>Tienda</strong>?</p>
+                <div class="form-group">
+                    <label for="traspaso-cantidad">Cantidad a mover:</label>
+                    <input type="number" id="traspaso-cantidad" min="1" class="input-control input-lg" style="font-size: 1.2em; font-weight: 700;">
+                </div>
+                <p id="traspaso-disponible" style="color: #666; font-size: 0.9em;"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="cerrarModalTraspaso()">Cancelar</button>
+                <button class="btn btn-primary" id="btn-confirmar-traspaso">🚚 Mover a Tienda</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Agregar Stock a Bodega -->
+    <div id="modal-agregar-stock" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>➕ Agregar Stock a Bodega</h3>
+                <button class="modal-close" onclick="cerrarModalAgregarStock()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="agregar-producto-nombre"></p>
+                <p>Cantidad actual en Bodega: <strong id="agregar-stock-actual">0</strong></p>
+                <div class="form-group">
+                    <label for="agregar-cantidad">Cantidad a agregar:</label>
+                    <input type="number" id="agregar-cantidad" min="1" class="input-control input-lg" style="font-size: 1.2em; font-weight: 700;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="cerrarModalAgregarStock()">Cancelar</button>
+                <button class="btn btn-primary" id="btn-confirmar-agregar-stock">➕ Agregar a Bodega</button>
+            </div>
+        </div>
     </div>
 
     <script src="js/main.js"></script>

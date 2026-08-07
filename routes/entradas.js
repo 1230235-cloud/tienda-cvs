@@ -1,42 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../database');
+const { runGet, runRun, runQuery } = require('../database');
+const { verificarAdmin } = require('../middleware');
 
-// Helper para ejecutar queries con promesas
-function runQuery(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        try {
-            const rows = db.all(sql, params);
-            resolve(rows);
-        } catch (err) {
-            reject(err);
-        }
-    });
-}
-
-function runGet(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        try {
-            const row = db.get(sql, params);
-            resolve(row);
-        } catch (err) {
-            reject(err);
-        }
-    });
-}
-
-function runRun(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        try {
-            const result = db.run(sql, params);
-            resolve({ lastID: result.lastInsertRowid, changes: result.changes });
-        } catch (err) {
-            reject(err);
-        }
-    });
-}
-
-// Generar folio único
 function generarFolio() {
     const fecha = new Date();
     const año = fecha.getFullYear().toString().slice(-2);
@@ -46,7 +12,6 @@ function generarFolio() {
     return `E${año}${mes}${dia}${random}`;
 }
 
-// Obtener todas las entradas
 router.get('/', async (req, res) => {
     try {
         const entradas = await runQuery(`
@@ -55,13 +20,12 @@ router.get('/', async (req, res) => {
             FROM entradas e 
             ORDER BY e.fecha DESC
         `);
-        res.json(entradas);
+        res.json({ entradas });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// Obtener una entrada por ID con detalles
 router.get('/:id', async (req, res) => {
     try {
         const entrada = await runGet('SELECT * FROM entradas WHERE id = ?', [req.params.id]);
@@ -82,39 +46,42 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// Crear un nuevo producto e ingresar su entrada de mercancía inicial
-router.post('/crear-y-entrar', async (req, res) => {
-    const { codigo, nombre, categoria, precio_venta, precio_compra, cantidad, stock_minimo, proveedor, usuario, observaciones } = req.body;
+router.post('/crear-y-entrar', verificarAdmin, async (req, res) => {
+    const { codigo, nombre, categoria, precio_publico, precio_cvs, precio_compra, cantidad, stock_minimo, proveedor, usuario, observaciones } = req.body;
     
-    if (!codigo || !nombre || !precio_venta || !cantidad) {
-        return res.status(400).json({ error: 'Código, nombre, precio de venta y cantidad son requeridos' });
+    if (!codigo || !nombre || !precio_publico || !cantidad) {
+        return res.status(400).json({ error: 'Código, nombre, precio público y cantidad son requeridos' });
     }
 
     try {
-        // 1. Insertar producto en la base de datos
+        const precioPub = parseFloat(precio_publico) || 0;
+        const precioCVS = parseFloat(precio_cvs) || precioPub;
+        const pCompra = parseFloat(precio_compra) || precioPub;
+
         const prodResult = await runRun(`
-            INSERT INTO productos (codigo, nombre, categoria, precio, stock, stock_minimo)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `, [codigo, nombre, categoria || 'GENERAL', parseFloat(precio_venta), parseInt(cantidad), parseInt(stock_minimo) || 5]);
+            INSERT INTO productos (codigo, nombre, categoria, precio, precio_publico, precio_cvs, stock_bodega, stock_minimo)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `, [codigo, nombre, categoria || 'GENERAL', precioPub, precioPub, precioCVS, parseInt(cantidad), parseInt(stock_minimo) || 5]);
 
         const productoId = prodResult.lastID;
-        const pCompra = parseFloat(precio_compra) || parseFloat(precio_venta);
         const total = parseInt(cantidad) * pCompra;
         const folio = generarFolio();
 
-        // 2. Insertar la entrada
-        const entradaResult = await runRun(`
-            INSERT INTO entradas (folio, proveedor, total, usuario, observaciones)
-            VALUES (?, ?, ?, ?, ?)
-        `, [folio, proveedor || 'GENERAL', total, usuario || 'ADMIN', observaciones || 'Ingreso de producto nuevo']);
+        const fechaEntrada = new Date().toISOString();
 
-        // 3. Insertar detalle de entrada
+        const entradaResult = await runRun(`
+            INSERT INTO entradas (folio, proveedor, total, usuario, observaciones, fecha)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, [folio, proveedor || 'GENERAL', total, usuario || 'ADMIN', observaciones || 'Ingreso de producto nuevo', fechaEntrada]);
+
         await runRun(`
             INSERT INTO entrada_detalles (entrada_id, producto_id, cantidad, precio_compra, subtotal)
             VALUES (?, ?, ?, ?, ?)
         `, [entradaResult.lastID, productoId, parseInt(cantidad), pCompra, total]);
 
-        res.json({ message: 'Producto registrado e ingresado al inventario exitosamente', productoId, folio, total });
+        const newProduct = await runGet('SELECT * FROM productos WHERE id = ?', [productoId]);
+
+        res.status(201).json({ success: true, message: 'Producto guardado', producto: newProduct, folio, total });
     } catch (error) {
         if (error.message.includes('UNIQUE constraint')) {
             return res.status(400).json({ error: 'El código de producto ya existe en la tienda' });
@@ -123,8 +90,7 @@ router.post('/crear-y-entrar', async (req, res) => {
     }
 });
 
-// Crear nueva entrada
-router.post('/', async (req, res) => {
+router.post('/', verificarAdmin, async (req, res) => {
     const { productos, proveedor, usuario, observaciones } = req.body;
     
     if (!productos || productos.length === 0) {
@@ -134,7 +100,6 @@ router.post('/', async (req, res) => {
     try {
         let total = 0;
         
-        // Calcular total
         for (const item of productos) {
             const producto = await runGet('SELECT * FROM productos WHERE id = ?', [item.producto_id]);
             if (!producto) {
@@ -145,13 +110,13 @@ router.post('/', async (req, res) => {
 
         const folio = generarFolio();
 
-        // Insertar entrada
-        const entradaResult = await runRun(`
-            INSERT INTO entradas (folio, proveedor, total, usuario, observaciones)
-            VALUES (?, ?, ?, ?, ?)
-        `, [folio, proveedor || 'GENERAL', total, usuario || 'ADMIN', observaciones || '']);
+        const fechaEntrada = new Date().toISOString();
 
-        // Insertar detalles y actualizar stock
+        const entradaResult = await runRun(`
+            INSERT INTO entradas (folio, proveedor, total, usuario, observaciones, fecha)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, [folio, proveedor || 'GENERAL', total, usuario || 'ADMIN', observaciones || '', fechaEntrada]);
+
         for (const item of productos) {
             const itemSubtotal = item.cantidad * item.precio;
             
@@ -160,42 +125,39 @@ router.post('/', async (req, res) => {
                 VALUES (?, ?, ?, ?, ?)
             `, [entradaResult.lastID, item.producto_id, item.cantidad, item.precio, itemSubtotal]);
 
-            // Actualizar stock sin alterar el precio de venta al público
             await runRun(`
                 UPDATE productos 
-                SET stock = stock + ?, 
+                SET stock_bodega = stock_bodega + ?, 
                     fecha_actualizacion = CURRENT_TIMESTAMP
                 WHERE id = ?
             `, [item.cantidad, item.producto_id]);
         }
 
-        res.json({ id: entradaResult.lastID, folio, total });
+        const entrada = await runGet('SELECT * FROM entradas WHERE id = ?', [entradaResult.lastID]);
+        res.status(201).json({ success: true, message: 'Entrada registrada', entrada });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// Cancelar entrada
-router.put('/:id/cancelar', async (req, res) => {
+router.put('/:id/cancelar', verificarAdmin, async (req, res) => {
     try {
         const entrada = await runGet('SELECT * FROM entradas WHERE id = ?', [req.params.id]);
         if (!entrada) {
             return res.status(404).json({ error: 'Entrada no encontrada' });
         }
 
-        // Obtener detalles de la entrada
         const detalles = await runQuery('SELECT * FROM entrada_detalles WHERE entrada_id = ?', [req.params.id]);
         
-        // Restar stock
         for (const detalle of detalles) {
             await runRun(`
                 UPDATE productos 
-                SET stock = stock - ?, fecha_actualizacion = CURRENT_TIMESTAMP
+                SET stock_bodega = stock_bodega - ?, 
+                    fecha_actualizacion = CURRENT_TIMESTAMP
                 WHERE id = ?
             `, [detalle.cantidad, detalle.producto_id]);
         }
 
-        // Eliminar entrada (cascade eliminará los detalles)
         await runRun('DELETE FROM entradas WHERE id = ?', [req.params.id]);
 
         res.json({ message: 'Entrada cancelada exitosamente' });
@@ -204,7 +166,6 @@ router.put('/:id/cancelar', async (req, res) => {
     }
 });
 
-// Obtener entradas por fecha
 router.get('/fecha/:fecha_inicio/:fecha_fin', async (req, res) => {
     try {
         const entradas = await runQuery(`
@@ -212,7 +173,7 @@ router.get('/fecha/:fecha_inicio/:fecha_fin', async (req, res) => {
             WHERE fecha BETWEEN ? AND ?
             ORDER BY fecha DESC
         `, [req.params.fecha_inicio, req.params.fecha_fin]);
-        res.json(entradas);
+        res.json({ entradas });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

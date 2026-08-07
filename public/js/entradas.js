@@ -24,9 +24,10 @@ function switchEntradaTab(tab) {
 
 async function loadProductos() {
     try {
-        const response = await fetch('/api/inventario');
+        const response = await apiFetch('/api/inventario');
         if (!response.ok) return;
-        productosCatalogo = await response.json();
+        const data = await response.json();
+        productosCatalogo = window.ensureArray(data, 'productos');
 
         renderProductosGrid(productosCatalogo);
 
@@ -55,12 +56,15 @@ function renderProductosGrid(lista) {
         const card = document.createElement('div');
         card.className = 'producto-card-item';
         const precioVal = parseFloat(prod.precio) || parseFloat(prod.precio_venta) || 0;
+        const bodega = parseInt(prod.stock_bodega) || 0;
+        const tienda = parseInt(prod.stock_tienda) || 0;
+        const stockActual = (bodega + tienda) || prod.stock_actual || prod.stock || prod.existencia || 0;
         card.innerHTML = `
             <div class="prod-code"><code>${prod.codigo}</code></div>
             <div class="prod-title">${prod.nombre}</div>
             <div class="prod-meta">
                 <span class="prod-price">${formatCurrency(precioVal)}</span>
-                <span class="prod-stock">Stock actual: <strong>${prod.stock}</strong></span>
+                <span class="prod-stock">Stock actual: <strong>${stockActual}</strong></span>
             </div>
             <button class="btn btn-sm btn-outline btn-block margin-top-xs">+ Seleccionar</button>
         `;
@@ -182,7 +186,7 @@ async function procesarEntrada() {
     };
 
     try {
-        const response = await fetch('/api/entradas', {
+        const response = await apiFetch('/api/entradas', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -194,8 +198,8 @@ async function procesarEntrada() {
             showToast('Entrada Registrada', `Entrada de mercancía registrada exitosamente con Folio: ${resData.folio}`, 'success');
             limpiarCarrito();
             document.getElementById('observaciones-entrada').value = '';
-            loadProductos();
-            loadEntradasRecientes();
+            if (typeof loadProductos === 'function') await loadProductos();
+            if (typeof loadEntradasRecientes === 'function') await loadEntradasRecientes();
         } else {
             showToast('Error', resData.error || 'No se pudo procesar la entrada', 'error');
         }
@@ -226,8 +230,9 @@ async function guardarNuevoProducto(e) {
         codigo: document.getElementById('nuevo-codigo').value.trim(),
         nombre: document.getElementById('nuevo-nombre').value.trim(),
         categoria: document.getElementById('nuevo-categoria').value.trim() || 'General',
-        precio_venta: parseFloat(document.getElementById('nuevo-precio-venta').value),
-        precio_compra: parseFloat(document.getElementById('nuevo-precio-compra').value) || parseFloat(document.getElementById('nuevo-precio-venta').value),
+        precio_publico: parseFloat(document.getElementById('nuevo-precio-publico').value) || 0,
+        precio_cvs: parseFloat(document.getElementById('nuevo-precio-cvs').value) || parseFloat(document.getElementById('nuevo-precio-publico').value) || 0,
+        precio_compra: parseFloat(document.getElementById('nuevo-precio-compra').value) || parseFloat(document.getElementById('nuevo-precio-publico').value),
         cantidad: parseInt(document.getElementById('nuevo-stock-inicial').value) || 1,
         stock_minimo: parseInt(document.getElementById('nuevo-stock-minimo').value) || 5,
         proveedor: document.getElementById('nuevo-proveedor').value.trim() || 'Proveedor General',
@@ -236,7 +241,7 @@ async function guardarNuevoProducto(e) {
     };
 
     try {
-        const response = await fetch('/api/entradas/crear-y-entrar', {
+        const response = await apiFetch('/api/entradas/crear-y-entrar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -250,8 +255,8 @@ async function guardarNuevoProducto(e) {
             document.getElementById('form-nuevo-producto').reset();
             document.getElementById('nuevo-stock-inicial').value = 10;
             document.getElementById('nuevo-stock-minimo').value = 5;
-            loadProductos();
-            loadEntradasRecientes();
+            if (typeof loadProductos === 'function') await loadProductos();
+            if (typeof loadEntradasRecientes === 'function') await loadEntradasRecientes();
         } else {
             alertErr.textContent = data.error || 'Error al registrar el nuevo producto';
             alertErr.style.display = 'block';
@@ -267,14 +272,14 @@ async function guardarNuevoProducto(e) {
 // Cargar Historial Reciente de Entradas
 async function loadEntradasRecientes() {
     try {
-        const response = await fetch('/api/entradas');
+        const response = await apiFetch('/api/entradas');
         if (!response.ok) return;
-        const entradas = await response.json();
+        const data = await response.json();
+        const entradas = window.ensureArray(data, 'entradas');
 
         const tbody = document.getElementById('entradas-recientes-body');
-        tbody.innerHTML = '';
 
-        if (!entradas || entradas.length === 0) {
+        if (entradas.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay entradas registradas aún.</td></tr>';
             return;
         }
@@ -283,7 +288,7 @@ async function loadEntradasRecientes() {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td><code>${e.folio}</code></td>
-                <td>${formatDate(e.fecha)}</td>
+                <td>${formatearFechaLocal(e.fecha)}</td>
                 <td><strong>${e.proveedor}</strong></td>
                 <td><strong>${formatCurrency(e.total)}</strong></td>
                 <td><span class="user-pill">${e.usuario || 'ADMIN'}</span></td>
@@ -300,7 +305,7 @@ async function loadEntradasRecientes() {
 
 async function verDetalleEntrada(id) {
     try {
-        const response = await fetch(`/api/entradas/${id}`);
+        const response = await apiFetch(`/api/entradas/${id}`);
         if (!response.ok) return;
         const entrada = await response.json();
 
@@ -309,7 +314,7 @@ async function verDetalleEntrada(id) {
             <div class="detail-summary-card">
                 <div class="detail-grid">
                     <div><strong>Folio:</strong> <code>${entrada.folio}</code></div>
-                    <div><strong>Fecha:</strong> ${formatDate(entrada.fecha)}</div>
+                    <div><strong>Fecha:</strong> ${formatearFechaLocal(entrada.fecha)}</div>
                     <div><strong>Proveedor:</strong> ${entrada.proveedor}</div>
                     <div><strong>Usuario:</strong> ${entrada.usuario}</div>
                     <div><strong>Costo Total Entrada:</strong> <span class="text-primary text-large">${formatCurrency(entrada.total)}</span></div>

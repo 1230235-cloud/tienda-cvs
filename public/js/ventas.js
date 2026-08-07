@@ -5,8 +5,9 @@ let ventaActual = null;
 // Cargar productos
 async function loadProductos() {
     try {
-        const response = await fetch('/api/inventario');
-        productos = await response.json();
+        const response = await apiFetch('/api/inventario');
+        const data = await response.json();
+        productos = window.ensureArray(data, 'productos');
         
         const buscarInput = document.getElementById('buscar-producto-venta');
         const termino = buscarInput.value.toLowerCase().trim();
@@ -40,11 +41,12 @@ function renderProductosGrid(productosList) {
     
     productosList.forEach(producto => {
         const card = document.createElement('div');
-        card.className = `producto-card ${producto.stock <= producto.stock_minimo ? 'stock-bajo' : ''}`;
+        card.className = `producto-card ${getStockProducto(producto) <= (producto.stock_minimo || 5) ? 'stock-bajo' : ''}`;
+        const precioMostrado = getPrecioMostrado(producto);
         card.innerHTML = `
             <div class="producto-nombre">${producto.nombre}</div>
-            <div class="producto-precio">${formatCurrency(producto.precio)}</div>
-            <div class="producto-stock">Stock: ${producto.stock}</div>
+            <div class="producto-precio">${formatCurrency(precioMostrado)}</div>
+            <div class="producto-stock">Stock: ${getStockProducto(producto)}</div>
         `;
         card.onclick = () => agregarAlCarrito(producto);
         grid.appendChild(card);
@@ -53,30 +55,72 @@ function renderProductosGrid(productosList) {
 
 // Agregar al carrito
 function agregarAlCarrito(producto) {
-    if (producto.stock <= 0) {
+    const stock = getStockProducto(producto);
+    if (stock <= 0) {
         alert('No hay stock disponible');
         return;
     }
     
     const existente = carrito.find(item => item.producto_id === producto.id);
     if (existente) {
-        if (existente.cantidad >= producto.stock) {
+        if (existente.cantidad >= stock) {
             alert('No hay suficiente stock');
             return;
         }
         existente.cantidad++;
-        existente.subtotal = existente.cantidad * existente.precio_unitario;
+        existente.subtotal = existente.cantidad * existente.precio;
     } else {
+        const precio = getPrecioProducto(producto);
         carrito.push({
             producto_id: producto.id,
             nombre: producto.nombre,
             codigo: producto.codigo,
             cantidad: 1,
-            precio_unitario: producto.precio,
-            subtotal: producto.precio
+            precio: precio,
+            precio_publico: Number(producto.precio_publico || producto.precio || 0),
+            precio_cvs: Number(producto.precio_cvs || 0),
+            subtotal: precio
         });
     }
     
+    renderCarrito();
+}
+
+// Obtener stock total con fallbacks
+function getStockProducto(producto) {
+    if (producto.stock_total !== undefined) return producto.stock_total;
+    if (producto.stock !== undefined && producto.stock !== null) return producto.stock;
+    const bodega = parseInt(producto.stock_bodega) || 0;
+    const tienda = parseInt(producto.stock_tienda) || 0;
+    if (bodega > 0 || tienda > 0) return bodega + tienda;
+    return producto.existencia ?? producto.cantidad ?? 0;
+}
+
+// Obtener precio según tipo de cliente
+function getPrecioProducto(producto) {
+    const tipoCliente = window.tipoClienteActual || document.getElementById('tipo-cliente')?.value || 'PUBLICO';
+    if (tipoCliente === 'CVS' && Number(producto.precio_cvs) > 0) {
+        return Number(producto.precio_cvs);
+    }
+    return Number(producto.precio_publico || producto.precio || 0);
+}
+
+// Obtener precio para mostrar en el grid
+function getPrecioMostrado(producto) {
+    return getPrecioProducto(producto);
+}
+
+// Actualizar precios del carrito al cambiar tipo de cliente
+function actualizarPreciosCarrito(tipoCliente) {
+    tipoCliente = tipoCliente || window.tipoClienteActual || document.getElementById('tipo-cliente')?.value || 'PUBLICO';
+    const esCVS = tipoCliente === 'CVS' || tipoCliente.includes('CVS');
+    carrito.forEach(item => {
+        const nuevoPrecio = esCVS && item.precio_cvs && Number(item.precio_cvs) > 0
+                            ? Number(item.precio_cvs)
+                            : Number(item.precio_publico || item.precio);
+        item.precio = nuevoPrecio;
+        item.subtotal = item.precio * item.cantidad;
+    });
     renderCarrito();
 }
 
@@ -100,10 +144,10 @@ function renderCarrito() {
                         <button class="btn btn-xs btn-secondary" onclick="cambiarCantidad(${index}, -1)">-</button>
                         <span class="qty-display">${item.cantidad}</span>
                         <button class="btn btn-xs btn-secondary" onclick="cambiarCantidad(${index}, 1)">+</button>
-                    </div>
-                </td>
-                <td>${formatCurrency(item.precio_unitario)}</td>
-                <td><strong>${formatCurrency(item.subtotal)}</strong></td>
+</div>
+                 </td>
+                 <td>${formatCurrency(item.precio)}</td>
+                 <td><strong>${formatCurrency(item.subtotal)}</strong></td>
                 <td><button class="btn btn-sm btn-danger-icon" onclick="eliminarDelCarrito(${index})" title="Eliminar">🗑️</button></td>
             `;
             tbody.appendChild(row);
@@ -117,8 +161,9 @@ function renderCarrito() {
 function cambiarCantidad(index, delta) {
     const item = carrito[index];
     const producto = productos.find(p => p.id === item.producto_id);
+    const stock = getStockProducto(producto);
     
-    if (delta > 0 && item.cantidad >= producto.stock) {
+    if (delta > 0 && item.cantidad >= stock) {
         alert('No hay suficiente stock');
         return;
     }
@@ -127,7 +172,7 @@ function cambiarCantidad(index, delta) {
     if (item.cantidad <= 0) {
         carrito.splice(index, 1);
     } else {
-        item.subtotal = item.cantidad * item.precio_unitario;
+        item.subtotal = item.precio * item.cantidad;
     }
     
     renderCarrito();
@@ -181,7 +226,7 @@ function abrirCarritoModal() {
             <tr>
                 <td><strong>${item.nombre}</strong></td>
                 <td>${item.cantidad}</td>
-                <td>${formatCurrency(item.precio_unitario)}</td>
+                <td>${formatCurrency(item.precio)}</td>
                 <td>${formatCurrency(item.subtotal)}</td>
                 <td>
                     <button class="btn btn-sm btn-danger" onclick="eliminarDelCarrito(${index}); closeModal();">Eliminar</button>
@@ -228,31 +273,27 @@ async function procesarVenta() {
         productos: carrito.map(item => ({
             producto_id: item.producto_id,
             cantidad: item.cantidad,
-            precio_unitario: item.precio_unitario
+            precio_unitario: item.precio
         })),
         metodo_pago: document.getElementById('metodo-pago').value,
+        tipo_cliente: document.getElementById('tipo-cliente').value,
         cliente: document.getElementById('cliente').value.trim() || 'PÚBLICO GENERAL',
-        usuario: usuarioNombre
+        precio_final: carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0),
+        usuario: usuarioNombre,
+        pagoCon: parseFloat(document.getElementById('pago-con')?.value) || 0,
+        cambio: parseFloat(document.getElementById('cambio')?.value) || 0
     };
     
     try {
-        const response = await fetch('/api/ventas', {
+        const response = await apiFetch('/api/ventas', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(venta)
         });
         
         if (response.ok) {
-            const result = await response.json();
-            showToast('¡Venta Exitosa!', `Venta ${result.folio} procesada por ${formatCurrency(result.total)}`, 'success');
-            
-            const detalleResponse = await fetch(`/api/ventas/${result.id}`);
-            if (!detalleResponse.ok) {
-                throw new Error('Error al cargar detalles de la venta');
-            }
-            ventaActual = await detalleResponse.json();
-            
-            mostrarTicket();
+            const data = await response.json();
+            showToast('¡Venta Exitosa!', `Venta ${data.folio} procesada por ${formatCurrency(data.total)}`, 'success');
             
             limpiarCarrito();
             document.getElementById('buscar-producto-venta').value = '';
@@ -260,6 +301,10 @@ async function procesarVenta() {
             document.getElementById('btn-regresar-busqueda').style.display = 'none';
             loadProductos();
             loadVentasRecientes();
+            
+            if (typeof imprimirTicket === 'function') {
+                imprimirTicket(data.ventaId);
+            }
         } else {
             const error = await response.json();
             showToast('Error de Venta', error.error || 'No se pudo procesar la venta', 'error');
@@ -270,7 +315,7 @@ async function procesarVenta() {
     }
 }
 
-// Mostrar ticket
+// Mostrar ticket en modal
 function mostrarTicket() {
     if (!ventaActual) return;
     
@@ -279,57 +324,81 @@ function mostrarTicket() {
     
     const detalles = ventaActual.detalles || [];
     const total = ventaActual.total || detalles.reduce((sum, d) => sum + (d.subtotal || 0), 0);
-    
-    if (detalles.length === 0) {
-        content.innerHTML = '<p style="text-align: center; padding: 20px;" class="text-muted">No hay detalles para esta venta</p>';
-    } else {
-        content.innerHTML = `
-            <div class="ticket-receipt">
-                <div class="ticket-header" style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 8px; margin-bottom: 8px;">
-                    <img src="assets/Logo vida sana-02.png" alt="Logo" style="max-height: 35px; margin-bottom: 3px;" onerror="this.style.display='none'">
-                    <h2 style="font-size: 1em; margin: 0; color: #1e293b;">TIENDA CVS</h2>
-                    <p style="margin: 2px 0; font-size: 0.7em; color: #64748b;">Comercio y Abarrotes de Calidad</p>
-                    <div style="font-size: 0.7em; margin-top: 5px; font-family: monospace;">
-                        <p style="margin: 1px 0;"><strong>Folio:</strong> ${ventaActual.folio}</p>
-                        <p style="margin: 1px 0;"><strong>Fecha:</strong> ${formatDate(ventaActual.fecha)}</p>
-                        <p style="margin: 1px 0;"><strong>Atendido por:</strong> ${ventaActual.usuario || 'ADMIN'}</p>
-                        <p style="margin: 1px 0;"><strong>Cliente:</strong> ${ventaActual.cliente}</p>
-                    </div>
-                </div>
+    const metodoPago = ventaActual.metodo_pago || 'EFECTIVO';
+    const folio = ventaActual.folio || '';
+    const fecha = formatearFechaLocal(new Date());
+    const cajero = ventaActual.usuario || 'ADMIN';
+    const cliente = ventaActual.cliente || 'PÚBLICO GENERAL';
 
-                <div class="ticket-body" style="font-family: monospace; font-size: 0.75em; margin-bottom: 8px;">
-                    <div style="display: flex; justify-content: space-between; font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 2px; margin-bottom: 5px;">
-                        <span>DESCRIPCIÓN</span>
-                        <span>IMPORTE</span>
-                    </div>
-                    ${detalles.map(detalle => `
-                        <div class="ticket-item" style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-                            <div>
-                                <span>${detalle.nombre || 'Producto'}</span><br>
-                                <small style="color: #64748b;">${detalle.cantidad} x ${formatCurrency(detalle.precio_unitario)}</small>
-                            </div>
-                            <strong style="align-self: flex-end;">${formatCurrency(detalle.subtotal)}</strong>
-                        </div>
-                    `).join('')}
-                </div>
+let itemsHTML = '';
+    detalles.forEach(detalle => {
+        itemsHTML += `
+        <tr>
+            <td class="col-cant">${detalle.cantidad}</td>
+            <td class="col-desc">${detalle.nombre || 'Producto'}</td>
+            <td class="col-importe">${formatCurrency(detalle.subtotal)}</td>
+        </tr>`;
+    });
 
-                <div class="ticket-footer" style="border-top: 2px dashed #000; padding-top: 8px; font-family: monospace;">
-                    <div style="display: flex; justify-content: space-between; font-size: 0.9em; font-weight: bold; margin-bottom: 4px;">
-                        <span>TOTAL A PAGAR:</span>
-                        <span style="color: #2563eb;">${formatCurrency(total)}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.7em; color: #64748b; margin-bottom: 8px;">
-                        <span>Método de Pago:</span>
-                        <span>${ventaActual.metodo_pago || 'EFECTIVO'}</span>
-                    </div>
-                    <p style="text-align: center; font-size: 0.7em; margin: 0; color: #475569;">
-                        ¡Gracias por su compra en Tienda CVS!<br>
-                        Conserve este ticket para cualquier aclaración.
-                    </p>
-                </div>
+    const clienteNombre = ventaActual.cliente || 'PÚBLICO GENERAL';
+
+    content.innerHTML = `
+        <div class="ticket-container">
+            <div class="header text-center">
+                <h1>CENTRO DE VIDA SANA</h1>
+                <p>FILIBERTO VERDUZCO AVILA</p>
+                <p>19A PONIENTE SUR, LIBRAMIENTO SUR</p>
+                <p>961 575 7310</p>
+                <p>RFC: CVS2210111B0</p>
             </div>
-        `;
-    }
+            <div class="datetime-row">
+                <span>${fecha}</span>
+            </div>
+            <table class="meta-table">
+                <tr>
+                    <td style="width: 25%;">CAJERO:</td>
+                    <td class="text-right">${cajero}</td>
+                </tr>
+                <tr>
+                    <td>FOLIO:</td>
+                    <td class="text-right">${folio}</td>
+                </tr>
+                <tr>
+                    <td>FORMA PAGO:</td>
+                    <td class="text-right">${metodoPago}</td>
+                </tr>
+                <tr>
+                    <td>CLIENTE:</td>
+                    <td class="text-right">${clienteNombre}</td>
+                </tr>
+            </table>
+            <table class="ticket-table">
+                <thead>
+                    <tr>
+                        <th class="col-cant">CANT.</th>
+                        <th class="col-desc">DESCRIPCION</th>
+                        <th class="col-importe">IMPORTE</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${itemsHTML}
+                </tbody>
+            </table>
+            <div class="summary-section">
+                NO. DE ARTICULOS: ${detalles.length}
+            </div>
+            <table class="totals-table">
+                <tr>
+                    <td class="text-right" style="width: 55%;">TOTAL:</td>
+                    <td class="text-right" style="width: 45%;">${formatCurrency(total)}</td>
+                </tr>
+            </table>
+            <div class="footer text-center">
+                <p>GRACIAS POR SU COMPRA</p>
+                <p>WWW.ABARROTESPUNTODEVENTA.COM</p>
+            </div>
+        </div>
+    `;
     
     const modal = document.getElementById('ticket-modal');
     if (modal) {
@@ -342,51 +411,391 @@ function cerrarModal() {
     document.getElementById('ticket-modal').classList.remove('active');
 }
 
-// Imprimir ticket
-function imprimirTicket() {
-    const ticketContent = document.getElementById('ticket-content');
-    if (!ticketContent || !ticketContent.innerHTML) {
-        alert('No hay contenido del ticket para imprimir');
-        return;
+// Imprimir ticket (soporta 80mm térmico y A4 normal)
+async function imprimirTicket(ventaId, tipoImpresora = 'tickets') {
+    try {
+        const response = await apiFetch(`/api/ventas/${ventaId}`);
+        if (!response.ok) {
+            alert('No se pudo cargar el detalle de la venta para imprimir');
+            return;
+        }
+        const venta = await response.json();
+
+        const detalles = venta.detalles || [];
+        const total = venta.total || detalles.reduce((sum, d) => sum + (d.subtotal || 0), 0);
+        const metodoPago = venta.metodo_pago || 'EFECTIVO';
+        const folio = venta.folio || String(venta.id);
+        const fecha = formatearFechaLocal(new Date());
+        const cajero = venta.usuario || 'ADMIN';
+        const cliente = venta.cliente || 'PÚBLICO GENERAL';
+
+        let itemsHTML = '';
+        detalles.forEach(detalle => {
+            itemsHTML += `
+            <tr>
+                <td class="col-cant">${detalle.cantidad}</td>
+                <td class="col-desc">${detalle.nombre || 'Producto'}</td>
+                <td class="col-importe">${formatCurrency(detalle.subtotal)}</td>
+            </tr>`;
+        });
+
+        const clienteNombre = venta.cliente || 'PÚBLICO GENERAL';
+
+        const esA4 = tipoImpresora === 'normal';
+        const pageSize = esA4 ? 'A4' : '80mm auto';
+        const pageMargin = esA4 ? '15mm' : '0';
+        const bodyWidth = esA4 ? '100%' : '76mm';
+        const maxWidth = esA4 ? '100%' : '300px';
+        const fontSize = esA4 ? '12pt' : '11pt';
+
+        const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Ticket de Venta</title>
+    <style>
+        @media print {
+            @page {
+                size: ${pageSize};
+                margin: ${pageMargin};
+            }
+        }
+        body {
+            width: ${bodyWidth};
+            margin: 0 auto;
+            padding: ${esA4 ? '20px' : '5px 0'};
+            font-family: ${esA4 ? "'Helvetica Neue', Arial, sans-serif" : "'Courier New', Courier, monospace"};
+            font-size: ${fontSize};
+            color: #000;
+            background: #fff;
+            line-height: 1.5;
+        }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .bold { font-weight: bold; }
+
+        .ticket-container {
+            width: 100% !important;
+            max-width: ${maxWidth} !important;
+            margin: 0 auto !important;
+            font-family: ${esA4 ? "'Helvetica Neue', Arial, sans-serif" : "'Courier New', Courier, monospace"} !important;
+            font-size: ${esA4 ? '13px' : '12px'} !important;
+        }
+
+        .ticket-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            table-layout: fixed !important;
+            margin-top: 8px !important;
+            margin-bottom: 8px !important;
+        }
+
+        .ticket-table th,
+        .ticket-table td {
+            padding: 2px 0 !important;
+        }
+
+        .col-cant {
+            width: 15% !important;
+            text-align: left !important;
+        }
+
+        .col-desc {
+            width: 50% !important;
+            text-align: left !important;
+            padding-right: 5px !important;
+            word-wrap: break-word !important;
+        }
+
+        .col-importe {
+            width: 35% !important;
+            text-align: right !important;
+            padding-right: 0 !important;
+            white-space: nowrap !important;
+        }
+
+        .header { margin-bottom: 10px; }
+        .header h1 {
+            margin: 0 0 3px 0;
+            font-size: 13pt;
+            font-weight: bold;
+        }
+        .header p {
+            margin: 1px 0;
+            font-size: 9.5pt;
+            text-transform: uppercase;
+        }
+
+        .datetime-row {
+            text-align: right;
+            font-size: 9.5pt;
+            margin-bottom: 4px;
+        }
+
+        .meta-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9.5pt;
+            margin-bottom: 8px;
+        }
+        .meta-table td { padding: 1px 0; }
+
+        .summary-section {
+            text-align: center;
+            font-size: 10.5pt;
+            margin-bottom: 10px;
+        }
+
+        .totals-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12.5pt;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+        .totals-table td { padding: 2px 0; }
+
+        .footer {
+            margin-top: 12px;
+            font-size: 9pt;
+        }
+        .footer p { margin: 2px 0; }
+    </style>
+</head>
+<body>
+
+    <div class="ticket-container">
+        <div class="header text-center">
+            <h1>CENTRO DE VIDA SANA</h1>
+            <p>FILIBERTO VERDUZCO AVILA</p>
+            <p>19A PONIENTE SUR, LIBRAMIENTO SUR</p>
+            <p>961 575 7310</p>
+            <p>RFC: CVS2210111B0</p>
+        </div>
+
+        <div class="datetime-row">
+            <span>${fecha}</span>
+        </div>
+
+        <table class="meta-table">
+            <tr>
+                <td style="width: 25%;">CAJERO:</td>
+                <td class="text-right">${cajero}</td>
+            </tr>
+            <tr>
+                <td>FOLIO:</td>
+                <td class="text-right">${folio}</td>
+            </tr>
+            <tr>
+                <td>FORMA PAGO:</td>
+                <td class="text-right">${metodoPago}</td>
+            </tr>
+            <tr>
+                <td>CLIENTE:</td>
+                <td class="text-right">${clienteNombre}</td>
+            </tr>
+            <tr>
+                <td>TIPO:</td>
+                <td class="text-right">${venta.tipo_cliente === 'CVS' ? 'Cliente CVS' : 'Público General'}</td>
+            </tr>
+        </table>
+
+        <table class="ticket-table">
+            <thead>
+                <tr>
+                    <th class="col-cant">CANT.</th>
+                    <th class="col-desc">DESCRIPCION</th>
+                    <th class="col-importe">IMPORTE</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${itemsHTML}
+            </tbody>
+        </table>
+
+        <div class="summary-section">
+            NO. DE ARTICULOS: ${detalles.length}
+        </div>
+
+        <table class="totals-table">
+            <tr>
+                <td class="text-right" style="width: 55%;">TOTAL:</td>
+                <td class="text-right" style="width: 45%;">${formatCurrency(total)}</td>
+            </tr>
+        </table>
+
+        <div class="footer text-center">
+            <p>GRACIAS POR SU COMPRA</p>
+            <p>WWW.ABARROTESPUNTODEVENTA.COM</p>
+        </div>
+    </div>
+
+</body>
+</html>`;
+
+        const printWindow = window.open('', '_blank', 'width=300,height=600');
+        if (!printWindow) {
+            alert('No se pudo abrir la ventana de impresión. Verifica que no esté bloqueada por el navegador.');
+            return;
+        }
+
+        printWindow.document.write(html);
+        printWindow.document.close();
+
+        printWindow.onload = function() {
+            printWindow.print();
+        };
+    } catch (error) {
+        console.error('Error al imprimir ticket:', error);
     }
+}
 
-    const printWindow = window.open('', '_blank', 'width=300,height=600');
-    if (!printWindow) {
-        alert('No se pudo abrir la ventana de impresión. Verifica que no esté bloqueada por el navegador.');
-        return;
+async function imprimirVentasDelDia() {
+    try {
+        const hoy = new Date().toISOString().split('T')[0];
+        const inicioHoy = `${hoy}T00:00:00.000Z`;
+        const finHoy = `${hoy}T23:59:59.999Z`;
+
+        const response = await apiFetch(`/api/ventas/fecha/${encodeURIComponent(inicioHoy)}/${encodeURIComponent(finHoy)}`);
+        if (!response.ok) {
+            alert('No se pudieron cargar las ventas del día');
+            return;
+        }
+        const data = await response.json();
+        const ventas = window.ensureArray(data, 'ventas');
+
+        if (ventas.length === 0) {
+            alert('No hay ventas registradas para el día de hoy');
+            return;
+        }
+
+        const fechaEmision = new Date().toLocaleString('es-MX', {
+            timeZone: 'America/Mexico_City',
+            day: 'numeric',
+            month: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+
+        let filasHTML = ventas.map((v, index) => {
+            const hora = new Date(v.fecha).toLocaleTimeString('es-MX', {
+                timeZone: 'America/Mexico_City',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+            const cliente = v.cliente || 'PÚBLICO GENERAL';
+            const tipoCliente = v.tipo_cliente === 'CVS' ? 'CVS' : 'PUBLICO';
+
+            return `
+                <tr>
+                    <td style="text-align:center;">${index + 1}</td>
+                    <td style="text-align:center;">${v.folio || v.id}</td>
+                    <td style="text-align:center;">${hora}</td>
+                    <td>${cliente}</td>
+                    <td style="text-align:center;">${tipoCliente}</td>
+                    <td style="text-align:right;">$${(v.total || 0).toFixed(2)}</td>
+                </tr>
+            `;
+        }).join('');
+
+        const totalEfectivo = ventas.filter(v => v.metodo_pago === 'EFECTIVO').reduce((s, v) => s + (v.total || 0), 0);
+        const totalTarjeta = ventas.filter(v => v.metodo_pago === 'TARJETA').reduce((s, v) => s + (v.total || 0), 0);
+        const totalTransferencia = ventas.filter(v => v.metodo_pago === 'TRANSFERENCIA').reduce((s, v) => s + (v.total || 0), 0);
+        const totalGeneral = ventas.reduce((s, v) => s + (v.total || 0), 0);
+
+        const ventana = window.open('', '', 'height=800,width=950');
+        ventana.document.write(`
+            <html>
+                <head>
+                    <title>Ventas del Día - Tienda CVS</title>
+                    <style>
+                        body { font-family: 'Helvetica Neue', Arial, sans-serif; padding: 25px; color: #1a202c; font-size: 12px; }
+                        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #2b6cb0; padding-bottom: 10px; }
+                        .header h1 { margin: 0; font-size: 20px; color: #2b6cb0; text-transform: uppercase; letter-spacing: 0.5px; }
+                        .header h2 { margin: 4px 0 0 0; font-size: 14px; color: #4a5568; font-weight: 500; }
+                        .meta { margin-bottom: 15px; display: flex; justify-content: space-between; font-size: 12px; color: #4a5568; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+                        th { background-color: #edf2f7; color: #2d3748; font-weight: bold; border: 1px solid #cbd5e0; padding: 8px; font-size: 11px; text-transform: uppercase; }
+                        td { border: 1px solid #e2e8f0; padding: 6px 8px; }
+                        tr:nth-child(even) { background-color: #f7fafc; }
+                        .totals-section { margin-top: 20px; padding: 12px; background-color: #ebf8ff; border: 1px solid #bee3f8; border-radius: 4px; }
+                        .totals-section table { width: 100%; }
+                        .totals-section td { border: none; padding: 4px 8px; }
+                        .total-row td { font-weight: bold; font-size: 13px; background-color: #bee3f8; }
+                        @page { margin: 5mm; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>CENTRO DE VIDA SANA</h1>
+                        <h2>REPORTE DE VENTAS DEL DÍA</h2>
+                    </div>
+                    <div class="meta">
+                        <span><strong>Fecha de Reporte:</strong> ${fechaEmision}</span>
+                        <span><strong>Total de Ventas:</strong> ${ventas.length}</span>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:5%;">#</th>
+                                <th style="width:15%;">N° TICKET</th>
+                                <th style="width:15%;">HORA</th>
+                                <th style="width:30%;">CLIENTE</th>
+                                <th style="width:15%;">TIPO</th>
+                                <th style="width:20%;">TOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${filasHTML}
+                        </tbody>
+                    </table>
+                    <div class="totals-section">
+                        <table>
+                            <tr>
+                                <td style="width:50%;"><strong>Efectivo:</strong></td>
+                                <td style="width:50%; text-align:right;">$${totalEfectivo.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Tarjeta:</strong></td>
+                                <td style="text-align:right;">$${totalTarjeta.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Transferencia:</strong></td>
+                                <td style="text-align:right;">$${totalTransferencia.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                            <tr class="total-row">
+                                <td><strong>GRAN TOTAL:</strong></td>
+                                <td style="text-align:right;"><strong>$${totalGeneral.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                </body>
+            </html>
+        `);
+
+        ventana.document.close();
+        ventana.focus();
+        setTimeout(() => {
+            ventana.print();
+            ventana.close();
+        }, 300);
+
+    } catch (error) {
+        console.error('Error al imprimir ventas del día:', error);
+        alert('Error al generar el reporte de ventas del día');
     }
-
-    printWindow.document.write(`
-        <html>
-        <head>
-            <title>Ticket de Venta</title>
-            <style>
-                body { font-family: 'Courier New', monospace; font-size: 11px; width: 80mm; margin: 0 auto; padding: 0; }
-                .ticket-receipt { width: 100%; }
-                .ticket-header { text-align: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px dashed #000; }
-                .ticket-header img { max-height: 40px; margin-bottom: 3px; }
-                .ticket-header h2 { font-size: 1.1em; margin: 0; color: #1e293b; }
-                .ticket-header p { margin: 2px 0; font-size: 0.75em; color: #64748b; }
-                .ticket-body { margin: 10px 0; }
-                .ticket-item { display: flex; justify-content: space-between; margin-bottom: 4px; }
-                .ticket-footer { margin-top: 10px; padding-top: 10px; border-top: 2px dashed #000; text-align: center; }
-            </style>
-        </head>
-        <body>${ticketContent.innerHTML}</body>
-        </html>
-    `);
-    printWindow.document.close();
-
-    printWindow.onload = function() {
-        printWindow.print();
-    };
 }
 
 // Cargar ventas recientes
 async function loadVentasRecientes() {
     try {
-        const response = await fetch('/api/ventas');
-        const ventas = await response.json();
+        const response = await apiFetch('/api/ventas');
+        const data = await response.json();
+        const ventas = window.ensureArray(data, 'ventas');
         
         const tbody = document.getElementById('ventas-recientes-body');
         tbody.innerHTML = '';
@@ -400,7 +809,7 @@ async function loadVentasRecientes() {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${venta.folio}</td>
-                <td>${formatDate(venta.fecha)}</td>
+                <td>${formatearFechaLocal(venta.fecha)}</td>
                 <td>${venta.cliente}</td>
                 <td>${formatCurrency(venta.total)}</td>
                 <td>${venta.metodo_pago}</td>
@@ -419,11 +828,16 @@ async function loadVentasRecientes() {
 // Ver ticket de venta existente
 async function verTicket(id) {
     try {
-        const response = await fetch(`/api/ventas/${id}`);
+        const response = await apiFetch(`/api/ventas/${id}`);
+        if (!response.ok) {
+            showToast('Error', 'No se pudo cargar el detalle de la venta', 'error');
+            return;
+        }
         ventaActual = await response.json();
         mostrarTicket();
     } catch (error) {
         console.error('Error al cargar venta:', error);
+        showToast('Error de Conexión', 'No se pudo cargar el detalle de la venta', 'error');
     }
 }
 
@@ -439,6 +853,19 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-regresar-busqueda').style.display = 'none';
     
     document.getElementById('buscar-producto-venta').addEventListener('input', buscarProducto);
+    
+    // Actualizar precios del carrito al cambiar tipo de cliente
+    const tipoClienteSelect = document.getElementById('tipo-cliente');
+    if (tipoClienteSelect) {
+        tipoClienteSelect.addEventListener('change', (e) => {
+            window.tipoClienteActual = e.target.value;
+            actualizarPreciosCarrito(e.target.value);
+            const buscarInput = document.getElementById('buscar-producto-venta');
+            if (buscarInput && buscarInput.value.trim()) {
+                buscarProducto();
+            }
+        });
+    }
     
     // Permitir agregar con Enter en el buscador
     document.getElementById('buscar-producto-venta').addEventListener('keypress', (e) => {
@@ -482,4 +909,112 @@ function buscarProducto() {
     renderProductosGrid(filtrados);
     grid.style.display = 'grid';
     btnRegresar.style.display = 'inline-flex';
+}
+
+// =====================================
+// DEVOLUCIÓN / CANCELAR VENTA
+// =====================================
+
+let ventaDevolucionTemp = null;
+
+function mostrarModalDevolucion() {
+    ventaDevolucionTemp = null;
+    document.getElementById('devolucion-folio').value = '';
+    document.getElementById('devolucion-info').innerHTML = '';
+    document.getElementById('btn-confirmar-devolucion').style.display = 'none';
+    document.getElementById('devolucion-modal').classList.add('active');
+}
+
+function cerrarModalDevolucion() {
+    document.getElementById('devolucion-modal').classList.remove('active');
+    ventaDevolucionTemp = null;
+}
+
+async function buscarVentaDevolucion() {
+    const folioInput = document.getElementById('devolucion-folio').value.trim();
+    if (!folioInput) {
+        showToast('Campo Requerido', 'Ingresa un Folio o ID de venta', 'warning');
+        return;
+    }
+
+    try {
+        let response = await apiFetch(`/api/ventas/${encodeURIComponent(folioInput)}`);
+        if (!response.ok) {
+            const numericId = parseInt(folioInput);
+            if (!isNaN(numericId)) {
+                response = await apiFetch(`/api/ventas/${numericId}`);
+            }
+        }
+
+        if (!response.ok) {
+            const error = await response.json();
+            showToast('Venta No Encontrada', error.error || 'No se encontró la venta', 'error');
+            ventaDevolucionTemp = null;
+            document.getElementById('devolucion-info').innerHTML = '';
+            document.getElementById('btn-confirmar-devolucion').style.display = 'none';
+            return;
+        }
+
+        ventaDevolucionTemp = await response.json();
+        const detalles = ventaDevolucionTemp.detalles || [];
+        const total = ventaDevolucionTemp.total || 0;
+        const fecha = formatearFechaLocal(ventaDevolucionTemp.fecha);
+        const cliente = ventaDevolucionTemp.cliente || 'PÚBLICO GENERAL';
+
+        let detallesHTML = '<ul style="margin: 10px 0; padding-left: 20px;">';
+        detalles.forEach(d => {
+            detallesHTML += `<li>${d.nombre || 'Producto'} - Cant: ${d.cantidad} - ${formatCurrency(d.subtotal || 0)}</li>`;
+        });
+        detallesHTML += '</ul>';
+
+        document.getElementById('devolucion-info').innerHTML = `
+            <div class="alert alert-info">
+                <strong>Folio:</strong> ${ventaDevolucionTemp.folio || folioInput}<br>
+                <strong>Fecha:</strong> ${fecha}<br>
+                <strong>Cliente:</strong> ${cliente}<br>
+                <strong>Total:</strong> ${formatCurrency(total)}<br>
+                <strong>Productos:</strong><br>
+                ${detallesHTML}
+            </div>
+        `;
+        document.getElementById('btn-confirmar-devolucion').style.display = 'inline-flex';
+    } catch (error) {
+        console.error('Error al buscar venta para devolución:', error);
+        showToast('Error de Conexión', 'No se pudo buscar la venta', 'error');
+    }
+}
+
+async function procesarDevolucion() {
+    if (!ventaDevolucionTemp) {
+        showToast('Error', 'Primero busca una venta válida', 'warning');
+        return;
+    }
+
+    if (ventaDevolucionTemp.estado === 'CANCELADA') {
+        showToast('Venta Ya Cancelada', 'Esta venta ya fue cancelada anteriormente', 'warning');
+        return;
+    }
+
+    if (!confirm(`¿Estás seguro de cancelar la venta ${ventaDevolucionTemp.folio}? El inventario se restablecerá.`)) {
+        return;
+    }
+
+    try {
+        const response = await apiFetch(`/api/ventas/${ventaDevolucionTemp.id}/cancelar`, {
+            method: 'PUT'
+        });
+
+        if (response.ok) {
+            showToast('Devolución Exitosa', `Venta ${ventaDevolucionTemp.folio} cancelada. Inventario restablecido.`, 'success');
+            cerrarModalDevolucion();
+            loadProductos();
+            loadVentasRecientes();
+        } else {
+            const error = await response.json();
+            showToast('Error en Devolución', error.error || 'No se pudo procesar la devolución', 'error');
+        }
+    } catch (error) {
+        console.error('Error al procesar devolución:', error);
+        showToast('Error de Conexión', 'No se pudo conectar con el servidor', 'error');
+    }
 }

@@ -3,7 +3,7 @@ let corteActual = null;
 // Cargar estado actual de caja
 async function loadEstadoCaja() {
     try {
-        const response = await fetch('/api/cortes/abierto/actual');
+        const response = await apiFetch('/api/cortes/abierto/actual');
         const corte = await response.json();
         
         const infoDiv = document.getElementById('corte-abierto-info');
@@ -14,7 +14,7 @@ async function loadEstadoCaja() {
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                     <div>
                         <p><strong>Folio:</strong> ${corte.folio}</p>
-                        <p><strong>Inicio:</strong> ${formatDate(corte.fecha_inicio)}</p>
+                        <p><strong>Inicio:</strong> ${formatearFechaLocal(corte.fecha_inicio)}</p>
                     </div>
                     <div>
                         <p><strong>Efectivo Inicial:</strong> ${formatCurrency(corte.efectivo_inicial)}</p>
@@ -48,7 +48,7 @@ async function iniciarCorte() {
     const usuario = document.getElementById('usuario').value;
     
     try {
-        const response = await fetch('/api/cortes/iniciar', {
+        const response = await apiFetch('/api/cortes/iniciar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ efectivo_inicial: efectivoInicial, usuario })
@@ -126,7 +126,7 @@ async function cerrarCorte() {
             btnConfirmar.textContent = 'Cerrando... ⏳';
 
             try {
-                const response = await fetch(`/api/cortes/${corteActual.id}/cerrar`, {
+                const response = await apiFetch(`/api/cortes/${corteActual.id}/cerrar`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ efectivo_final: efectivoFinal })
@@ -165,8 +165,9 @@ async function cerrarCorte() {
 // Cargar historial de cortes
 async function loadCortesHistorial() {
     try {
-        const response = await fetch('/api/cortes');
-        const cortes = await response.json();
+        const response = await apiFetch('/api/cortes');
+        const data = await response.json();
+        const cortes = window.ensureArray(data, 'cortes');
         
         // Llenar tabla de últimos cortes (primero)
         const tbody = document.getElementById('cortes-body');
@@ -180,7 +181,7 @@ async function loadCortesHistorial() {
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${corte.folio}</td>
-                        <td>${formatDate(corte.fecha_inicio)}</td>
+                        <td>${formatearFechaLocal(corte.fecha_inicio)}</td>
                         <td>${formatCurrency(corte.total_ventas)}</td>
                         <td><span style="color: ${corte.estado === 'ABIERTO' ? 'green' : 'orange'}">${corte.estado}</span></td>
                         <td>
@@ -207,8 +208,8 @@ async function loadCortesHistorial() {
                 const diferenciaColor = corte.diferencia !== 0 ? (corte.diferencia > 0 ? 'green' : 'red') : 'inherit';
                 row.innerHTML = `
                     <td>${corte.folio}</td>
-                    <td>${formatDate(corte.fecha_inicio)}</td>
-                    <td>${formatDate(corte.fecha_fin) || '-'}</td>
+                    <td>${formatearFechaLocal(corte.fecha_inicio)}</td>
+                    <td>${formatearFechaLocal(corte.fecha_fin) || '-'}</td>
                     <td>${formatCurrency(corte.efectivo_inicial)}</td>
                     <td>${formatCurrency(corte.ventas_efectivo)}</td>
                     <td>${formatCurrency(corte.ventas_tarjeta)}</td>
@@ -240,17 +241,24 @@ function verDetalleCorteActual() {
 // Ver detalle de corte
 async function verDetalle(id) {
     try {
-        const response = await fetch(`/api/cortes/${id}`);
+        const response = await apiFetch(`/api/cortes/${id}`);
         const corte = await response.json();
         
+        window.corteActual = corte;
+        
         const content = document.getElementById('detalle-corte-content');
+        const ahora = formatearFechaLocal(new Date());
         content.innerHTML = `
             <div style="margin-bottom: 20px;">
                 <p><strong>Folio:</strong> ${corte.folio}</p>
-                <p><strong>Fecha Inicio:</strong> ${formatDate(corte.fecha_inicio)}</p>
-                <p><strong>Fecha Fin:</strong> ${formatDate(corte.fecha_fin)}</p>
+                <p><strong>Fecha Inicio:</strong> ${formatearFechaLocal(corte.fecha_inicio)}</p>
+                <p><strong>Fecha Fin:</strong> ${formatearFechaLocal(corte.fecha_fin)}</p>
                 <p><strong>Usuario:</strong> ${corte.usuario}</p>
                 <p><strong>Estado:</strong> ${corte.estado}</p>
+                <p><strong>Reporte Generado:</strong> ${ahora}</p>
+            </div>
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button class="btn btn-primary" onclick="imprimirCorte()">🖨️ Imprimir Corte de Caja</button>
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
                 <div style="background: #f8f9fa; padding: 15px; border-radius: 10px;">
@@ -285,7 +293,7 @@ async function verDetalle(id) {
                         ${corte.ventas ? corte.ventas.map(venta => `
                             <tr>
                                 <td>${venta.folio}</td>
-                                <td>${formatDate(venta.fecha)}</td>
+                                <td>${formatearFechaLocal(venta.fecha)}</td>
                                 <td>${formatCurrency(venta.total)}</td>
                                 <td>${venta.metodo_pago}</td>
                             </tr>
@@ -299,6 +307,265 @@ async function verDetalle(id) {
     } catch (error) {
         console.error('Error al cargar corte:', error);
     }
+}
+
+// Imprimir corte de caja
+function imprimirCorte() {
+    const corte = window.corteActual;
+    if (!corte) {
+        alert('No se encontraron datos del corte para imprimir');
+        return;
+    }
+
+    const ahora = formatearFechaLocal(new Date());
+
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Corte de Caja</title>
+    <style>
+        @media print {
+            @page {
+                size: 80mm auto;
+                margin: 0;
+            }
+        }
+        body {
+            width: 76mm;
+            margin: 0 auto;
+            padding: 5px 0;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 11pt;
+            color: #000;
+            background: #fff;
+            line-height: 1.3;
+        }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .bold { font-weight: bold; }
+
+        .ticket-container {
+            width: 100% !important;
+            max-width: 300px !important;
+            margin: 0 auto !important;
+            font-family: 'Courier New', Courier, monospace !important;
+            font-size: 12px !important;
+        }
+
+        .ticket-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            table-layout: fixed !important;
+            margin-top: 8px !important;
+            margin-bottom: 8px !important;
+        }
+
+        .ticket-table th,
+        .ticket-table td {
+            padding: 2px 0 !important;
+        }
+
+        .col-cant {
+            width: 15% !important;
+            text-align: left !important;
+        }
+
+        .col-desc {
+            width: 50% !important;
+            text-align: left !important;
+            padding-right: 5px !important;
+            word-wrap: break-word !important;
+        }
+
+        .col-importe {
+            width: 35% !important;
+            text-align: right !important;
+            padding-right: 0 !important;
+            white-space: nowrap !important;
+        }
+
+        .header { margin-bottom: 10px; }
+        .header h1 {
+            margin: 0 0 3px 0;
+            font-size: 13pt;
+            font-weight: bold;
+        }
+        .header p {
+            margin: 1px 0;
+            font-size: 9.5pt;
+            text-transform: uppercase;
+        }
+
+        .datetime-row {
+            text-align: right;
+            font-size: 9.5pt;
+            margin-bottom: 4px;
+        }
+
+        .meta-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9.5pt;
+            margin-bottom: 8px;
+        }
+        .meta-table td { padding: 1px 0; }
+
+        .section-title {
+            font-size: 10pt;
+            font-weight: bold;
+            margin: 8px 0 4px 0;
+            border-bottom: 1px solid #000;
+            padding-bottom: 2px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+        .summary-grid .label { font-size: 9pt; }
+        .summary-grid .value { font-size: 9pt; text-align: right; }
+
+        .total-row {
+            font-size: 11pt;
+            font-weight: bold;
+            border-top: 2px solid #000;
+        }
+
+        .footer {
+            margin-top: 12px;
+            font-size: 9pt;
+            text-align: center;
+        }
+        .footer p { margin: 2px 0; }
+
+        .signature-line {
+            margin-top: 30px;
+            border-top: 1px solid #000;
+            width: 60%;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
+            font-size: 9pt;
+            padding-top: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="ticket-container">
+        <div class="header text-center">
+            <h1>CENTRO DE VIDA SANA</h1>
+            <p>CORTE DE CAJA</p>
+            <p>FILIBERTO VERDUZCO AVILA</p>
+            <p>19A PONIENTE SUR, LIBRAMIENTO SUR</p>
+            <p>961 575 7310</p>
+            <p>RFC: CVS2210111B0</p>
+        </div>
+
+        <div class="datetime-row">
+            <span>${ahora}</span>
+        </div>
+
+        <table class="meta-table">
+            <tr>
+                <td style="width: 30%;">FOLIO:</td>
+                <td class="text-right">${corte.folio}</td>
+            </tr>
+            <tr>
+                <td>CAJERO:</td>
+                <td class="text-right">${corte.usuario}</td>
+            </tr>
+            <tr>
+                <td>ESTADO:</td>
+                <td class="text-right">${corte.estado}</td>
+            </tr>
+        </table>
+
+        <div class="section-title">RESUMEN DE INGRESOS</div>
+        <table class="ticket-table">
+            <thead>
+                <tr>
+                    <th class="col-cant">#</th>
+                    <th class="col-desc">CONCEPTO</th>
+                    <th class="col-importe">IMPORTE</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="col-cant">1</td>
+                    <td class="col-desc">Efectivo Inicial</td>
+                    <td class="col-importe">${formatCurrency(corte.efectivo_inicial)}</td>
+                </tr>
+                <tr>
+                    <td class="col-cant">2</td>
+                    <td class="col-desc">Ventas Efectivo</td>
+                    <td class="col-importe">${formatCurrency(corte.ventas_efectivo)}</td>
+                </tr>
+                <tr>
+                    <td class="col-cant">3</td>
+                    <td class="col-desc">Ventas Tarjeta</td>
+                    <td class="col-importe">${formatCurrency(corte.ventas_tarjeta)}</td>
+                </tr>
+                <tr>
+                    <td class="col-cant">4</td>
+                    <td class="col-desc">Ventas Transferencia</td>
+                    <td class="col-importe">${formatCurrency(corte.ventas_transferencia)}</td>
+                </tr>
+                <tr class="total-row">
+                    <td class="col-cant"></td>
+                    <td class="col-desc"><strong>TOTAL EN CAJA</strong></td>
+                    <td class="col-importe"><strong>${formatCurrency(corte.total_ventas)}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="section-title">ARQUEO</div>
+        <table class="ticket-table">
+            <thead>
+                <tr>
+                    <th class="col-cant">#</th>
+                    <th class="col-desc">CONCEPTO</th>
+                    <th class="col-importe">IMPORTE</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="col-cant">1</td>
+                    <td class="col-desc">Efectivo en Caja (Final)</td>
+                    <td class="col-importe">${formatCurrency(corte.efectivo_final)}</td>
+                </tr>
+                <tr>
+                    <td class="col-cant">2</td>
+                    <td class="col-desc">Total Ventas (Cobrado)</td>
+                    <td class="col-importe">${formatCurrency(corte.total_ventas)}</td>
+                </tr>
+                <tr>
+                    <td class="col-cant">3</td>
+                    <td class="col-desc">Diferencia (Sobrante/Faltante)</td>
+                    <td class="col-importe" style="color: ${corte.diferencia !== 0 ? (corte.diferencia > 0 ? 'green' : 'red') : 'inherit'}; font-weight: bold;">${formatCurrency(corte.diferencia || 0)}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="signature-line">FIRMA DEL CAJERO</div>
+
+        <div class="footer text-center">
+            <p>GRACIAS POR SU PREFERENCIA</p>
+            <p>WWW.ABARROTESPUNTODEVENTA.COM</p>
+        </div>
+    </div>
+
+    <script>
+        window.onload = function() { window.print(); window.close(); };
+    </script>
+</body>
+</html>`;
+
+    const printWindow = window.open('', '_blank', 'width=300,height=600');
+    printWindow.document.write(html);
+    printWindow.document.close();
 }
 
 // Cerrar modal

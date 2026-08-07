@@ -1,81 +1,59 @@
 // Módulo de Códigos de Barras
 
 let todosProductos = [];
-let categorias = [];
 
 async function loadProductos() {
     try {
-        const response = await fetch('/api/inventario');
+        const response = await apiFetch('/api/inventario');
         if (!response.ok) return;
-        todosProductos = await response.json();
-        populateCategorias();
+        const data = await response.json();
+        todosProductos = window.ensureArray(data, 'productos');
+        populateProductos();
     } catch (error) {
         console.error('Error al cargar productos:', error);
     }
 }
 
-function populateCategorias() {
-    const select = document.getElementById('barcode-categoria');
-    categorias = [...new Set(todosProductos.map(p => p.categoria).filter(Boolean))].sort();
+function populateProductos() {
+    const select = document.getElementById('barcode-producto');
+    select.innerHTML = '<option value="">Todos los productos</option>';
 
-    select.innerHTML = '<option value="">Selecciona una categoría</option>';
-
-    categorias.forEach(cat => {
+    todosProductos.forEach(prod => {
         const opt = document.createElement('option');
-        opt.value = cat;
-        opt.textContent = cat;
+        opt.value = prod.id;
+        opt.textContent = `${prod.codigo} - ${prod.nombre}`;
         select.appendChild(opt);
     });
 }
 
-function getCategoryPrefix(categoria) {
-    const cat = (categoria || '').toLowerCase().trim();
-    const map = {
-        'bebidas': '750',
-        'botanas': '751',
-        'lácteos': '752',
-        'abarrotes': '753',
-        'galletas': '754',
-        'dulces': '755',
-        'limpieza': '756',
-        'hogar': '757',
-        'enlatados': '758',
-        'general': '759'
-    };
-    return map[cat] || '759';
-}
-
-function generateBarcodeForProduct(producto, index) {
-    const prefix = getCategoryPrefix(producto.categoria);
-    const num = String(index).padStart(4, '0');
-    return `${prefix}${num}`;
-}
-
 function generarCodigosBarras() {
-    const categoria = document.getElementById('barcode-categoria').value;
+    const productoId = document.getElementById('barcode-producto').value;
     const cantidad = parseInt(document.getElementById('barcode-cantidad').value) || 1;
-
-    if (!categoria) {
-        showToast('Selecciona una categoría', 'Debes seleccionar un tipo de producto', 'warning');
-        return;
-    }
-
-    const productosFiltrados = todosProductos.filter(p => p.categoria === categoria);
-
-    if (productosFiltrados.length === 0) {
-        showToast('Sin productos', 'No hay productos en esta categoría', 'warning');
-        return;
-    }
 
     const previewGrid = document.getElementById('barcode-preview-grid');
     const printGrid = document.getElementById('barcode-print-grid');
     previewGrid.innerHTML = '';
     printGrid.innerHTML = '';
 
+    let productosFiltrados = [];
+    if (productoId) {
+        const prod = todosProductos.find(p => p.id === parseInt(productoId));
+        if (prod) {
+            productosFiltrados = [prod];
+        }
+    } else {
+        productosFiltrados = todosProductos;
+    }
+
+    if (productosFiltrados.length === 0) {
+        showToast('Sin productos', 'No hay productos disponibles', 'warning');
+        return;
+    }
+
     const allCodes = [];
 
     productosFiltrados.forEach((producto, idx) => {
-        const code = generateBarcodeForProduct(producto, idx + 1);
+        const code = producto.codigo || `759${String(idx + 1).padStart(4, '0')}`;
 
         for (let i = 0; i < cantidad; i++) {
             allCodes.push({
@@ -145,8 +123,11 @@ function imprimirCodigosBarras() {
     }
 
     printArea.classList.add('visible');
-    window.print();
-    printArea.classList.remove('visible');
+    
+    setTimeout(() => {
+        window.print();
+        printArea.classList.remove('visible');
+    }, 300);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -154,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderGlobalHeader('codigos-barras');
     loadProductos();
 
-    document.getElementById('barcode-categoria').addEventListener('change', () => {
+    document.getElementById('barcode-producto').addEventListener('change', () => {
         document.getElementById('barcode-preview-area').style.display = 'none';
     });
 });

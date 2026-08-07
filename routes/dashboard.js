@@ -1,62 +1,37 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../database');
+const { runGet, runQuery } = require('../database');
+const { verificarAdmin } = require('../middleware');
 
-// Helper para ejecutar queries con promesas
-function runQuery(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        try {
-            const rows = db.all(sql, params);
-            resolve(rows);
-        } catch (err) {
-            reject(err);
-        }
-    });
-}
-
-function runGet(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        try {
-            const row = db.get(sql, params);
-            resolve(row);
-        } catch (err) {
-            reject(err);
-        }
-    });
-}
-
-// Obtener estadísticas generales
-router.get('/estadisticas', async (req, res) => {
+router.get('/estadisticas', verificarAdmin, async (req, res) => {
     try {
-        // Total productos
-        const totalProductosResult = await runGet('SELECT COUNT(*) as total FROM productos');
+        const totalProductosResult = await runGet('SELECT COUNT(*) as total FROM productos WHERE activo = 1');
         const totalProductos = totalProductosResult.total;
         
-        // Productos con stock bajo
-        const stockBajoResult = await runGet('SELECT COUNT(*) as total FROM productos WHERE stock <= stock_minimo');
+        const stockBajoResult = await runGet('SELECT COUNT(*) as total FROM productos WHERE (stock_bodega + stock_tienda) <= stock_minimo AND activo = 1');
         const stockBajo = stockBajoResult.total;
         
-        // Valor total del inventario
-        const valorInventarioResult = await runGet('SELECT SUM(precio * stock) as total FROM productos');
+        const valorInventarioResult = await runGet('SELECT SUM(precio * (stock_bodega + stock_tienda)) as total FROM productos WHERE activo = 1');
         const valorInventario = valorInventarioResult.total || 0;
         
-        // Ventas de hoy
         const hoy = new Date().toISOString().split('T')[0];
+        const inicioHoy = new Date(hoy + 'T00:00:00.000Z').toISOString();
+        const finHoy = new Date(hoy + 'T23:59:59.999Z').toISOString();
         const ventasHoy = await runGet(`
             SELECT COUNT(*) as total, COALESCE(SUM(total), 0) as monto 
             FROM ventas 
-            WHERE DATE(fecha) = ? AND estado = 'COMPLETADA'
-        `, [hoy]);
+            WHERE fecha >= ? AND fecha <= ? AND estado = 'COMPLETADA'
+        `, [inicioHoy, finHoy]);
         
-        // Ventas del mes
-        const mes = new Date().toISOString().slice(0, 7);
+        const ahora = new Date();
+        const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString();
+        const finMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
         const ventasMes = await runGet(`
             SELECT COUNT(*) as total, COALESCE(SUM(total), 0) as monto 
             FROM ventas 
-            WHERE strftime('%Y-%m', fecha) = ? AND estado = 'COMPLETADA'
-        `, [mes]);
+            WHERE fecha >= ? AND fecha <= ? AND estado = 'COMPLETADA'
+        `, [inicioMes, finMes]);
         
-        // Corte de caja actual
         const corteActual = await runGet("SELECT * FROM cortes_caja WHERE estado = 'ABIERTO'");
         
         res.json({
@@ -72,8 +47,7 @@ router.get('/estadisticas', async (req, res) => {
     }
 });
 
-// Obtener productos más vendidos
-router.get('/productos-mas-vendidos', async (req, res) => {
+router.get('/productos-mas-vendidos', verificarAdmin, async (req, res) => {
     try {
         const productos = await runQuery(`
             SELECT p.nombre, p.codigo, SUM(vd.cantidad) as total_vendido, SUM(vd.subtotal) as total_revenue
@@ -85,54 +59,56 @@ router.get('/productos-mas-vendidos', async (req, res) => {
             ORDER BY total_vendido DESC
             LIMIT 10
         `);
-        res.json(productos);
+        res.json({ productos });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// Obtener ventas por día (últimos 7 días)
-router.get('/ventas-ultimos-dias', async (req, res) => {
+router.get('/ventas-ultimos-dias', verificarAdmin, async (req, res) => {
     try {
+        const ahora = new Date();
+        const inicioSemana = new Date(ahora.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
         const ventas = await runQuery(`
             SELECT DATE(fecha) as fecha, COUNT(*) as num_ventas, SUM(total) as monto
             FROM ventas
             WHERE estado = 'COMPLETADA'
-            AND fecha >= date('now', '-7 days')
+            AND fecha >= ?
             GROUP BY DATE(fecha)
             ORDER BY fecha DESC
-        `);
-        res.json(ventas);
+        `, [inicioSemana]);
+        res.json({ ventas });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// Obtener alertas de stock
-router.get('/alertas-stock', async (req, res) => {
+router.get('/alertas-stock', verificarAdmin, async (req, res) => {
     try {
         const productos = await runQuery(`
             SELECT * FROM productos 
-            WHERE stock <= stock_minimo 
-            ORDER BY stock ASC
+            WHERE (stock_bodega + stock_tienda) <= stock_minimo 
+            AND activo = 1
+            ORDER BY (stock_bodega + stock_tienda) ASC
         `);
-        res.json(productos);
+        res.json({ productos });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// Obtener resumen de ventas por método de pago
-router.get('/ventas-metodo-pago', async (req, res) => {
+router.get('/ventas-metodo-pago', verificarAdmin, async (req, res) => {
     try {
+        const ahora = new Date();
+        const treintaDiasAgo = new Date(ahora.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
         const ventas = await runQuery(`
             SELECT metodo_pago, COUNT(*) as num_ventas, SUM(total) as monto
             FROM ventas
             WHERE estado = 'COMPLETADA'
-            AND fecha >= date('now', '-30 days')
+            AND fecha >= ?
             GROUP BY metodo_pago
-        `);
-        res.json(ventas);
+        `, [treintaDiasAgo]);
+        res.json({ ventas });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

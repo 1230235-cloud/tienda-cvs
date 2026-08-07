@@ -2,6 +2,77 @@
 // TIENDA CVS - FUNCIONES GLOBALES
 // =====================================
 
+window.API_BASE_URL = (() => {
+    const storedIp = localStorage.getItem('server_ip');
+    const storedMode = localStorage.getItem('server_mode');
+    if (storedMode === 'client' && storedIp) {
+      return `http://${storedIp}:3000`;
+    }
+    if (window.location.protocol.startsWith('http')) {
+      return window.location.origin;
+    }
+    return 'http://localhost:3000';
+  })();
+
+async function apiFetch(url, options = {}) {
+  const fullUrl = url.startsWith('http') ? url : `${window.API_BASE_URL}${url}`;
+  const token = localStorage.getItem('auth_token');
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {})
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(fullUrl, { ...options, headers });
+  return response;
+}
+
+window.ensureArray = function(data, key) {
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === 'object') {
+    if (key && Array.isArray(data[key])) return data[key];
+    const arrayProp = Object.values(data).find(val => Array.isArray(val));
+    if (arrayProp) return arrayProp;
+  }
+  return [];
+};
+
+// =====================================
+// CONTROL DE ACCESO POR ROLES
+// =====================================
+
+const usuarioSesion = JSON.parse(localStorage.getItem('usuario') || '{}');
+const esCajero = usuarioSesion.rol && usuarioSesion.rol.toUpperCase() === 'CAJERO';
+const esAdmin = usuarioSesion.rol && usuarioSesion.rol.toUpperCase() === 'ADMIN';
+
+function aplicarPermisosUI() {
+  if (!esCajero && !esAdmin) return;
+
+  const paginasPermitidasCajero = ['ventas.html', 'codigos-barras.html', 'corte-caja.html', 'cortes.html', 'index.html', 'login.html'];
+  const paginaActual = window.location.pathname.split('/').pop().toLowerCase();
+
+  if (esCajero && paginaActual && !paginasPermitidasCajero.some(pag => paginaActual.includes(pag))) {
+    alert('Acceso restringido: Tu perfil de Cajero no tiene permisos para ingresar a esta sección.');
+    window.location.href = 'ventas.html';
+    return;
+  }
+
+  document.querySelectorAll('.sidebar-link, .sidebar-nav-item, .nav-item').forEach(link => {
+    const href = link.getAttribute('href') || '';
+    if (esCajero && href && !paginasPermitidasCajero.some(pag => href.includes(pag))) {
+      link.style.display = 'none';
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  aplicarPermisosUI();
+});
+
 // Formatear moneda a MXN
 function formatCurrency(amount) {
     return new Intl.NumberFormat('es-MX', {
@@ -10,7 +81,7 @@ function formatCurrency(amount) {
     }).format(amount || 0);
 }
 
-// Formatear fecha
+// Formatear fecha (UTC - para almacenamiento)
 function formatDate(dateString) {
     if (!dateString) return '-';
     const date = new Date(dateString);
@@ -20,6 +91,21 @@ function formatDate(dateString) {
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
+    });
+}
+
+// Formatear fecha en zona horaria local de México
+function formatearFechaLocal(dateString) {
+    if (!dateString) return '';
+    const fecha = new Date(dateString);
+    return fecha.toLocaleString('es-MX', {
+        timeZone: 'America/Mexico_City',
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
     });
 }
 
@@ -119,6 +205,7 @@ function logout() {
             closeModal();
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user_info');
+            localStorage.removeItem('usuario');
             showToast('Sesión cerrada', 'Has cerrado sesión correctamente', 'success');
             setTimeout(() => {
                 window.location.href = 'login.html';
@@ -138,7 +225,7 @@ async function apiCall(url, method = 'GET', data = null) {
             options.body = JSON.stringify(data);
         }
         
-        const response = await fetch(url, options);
+        const response = await apiFetch(url, options);
         
         if (!response.ok) {
             const error = await response.json();
@@ -196,6 +283,10 @@ function initSidebar() {
                     <i class="fa-solid fa-dollar-sign sidebar-nav-icon"></i>
                     <span>Corte de Caja</span>
                 </a>
+                <a href="ordenes_compra.html" class="sidebar-nav-item" data-page="ordenes_compra">
+                    <i class="fa-solid fa-file-lines sidebar-nav-icon"></i>
+                    <span>Órdenes de Compra</span>
+                </a>
             </nav>
 
             <div class="sidebar-user-info">
@@ -242,6 +333,9 @@ function initSidebar() {
             setSidebarActive(item);
         });
     });
+
+    // Aplicar permisos de rol después de renderizar el sidebar
+    aplicarPermisosUI();
 }
 
 function toggleSidebar() {
@@ -392,4 +486,5 @@ function renderGlobalHeader() {
     if (typeof initSidebar === 'function') {
         initSidebar();
     }
+    aplicarPermisosUI();
 }

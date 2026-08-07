@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Órdenes de Compra - Tienda CVS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css?v=1.1">
+</head>
+<body>
+    <div class="app-wrapper">
+        <header id="global-header" class="global-header"></header>
+
+        <main class="main-content">
+            <div class="page-title-bar">
+                <div>
+                    <h1>📋 Órdenes de Compra</h1>
+                    <p class="subtitle">Genera y gestiona órdenes de compra a proveedores</p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="window.location.href='ordenes_compra.html'">
+                        📝 Nueva Orden
+                    </button>
+                    <button class="btn btn-secondary" onclick="imprimirInventarioGeneral()">
+                        📋 Reporte General de Inventario
+                    </button>
+                </div>
+            </div>
+
+            <!-- Nueva Orden Form -->
+            <div class="content-box margin-bottom-sm" id="form-orden">
+                <h3 style="margin-bottom: 15px;">Nueva Orden de Compra</h3>
+
+                <div class="filters-row">
+                    <div class="filter-group">
+                        <label>Proveedor</label>
+                        <input type="text" id="orden-proveedor" list="proveedores-list" class="input-control" placeholder="Selecciona o escribe un proveedor...">
+                        <datalist id="proveedores-list"></datalist>
+                    </div>
+                    <div class="filter-group">
+                        <label>Solicita</label>
+                        <input type="text" id="orden-solicita" class="input-control" placeholder="Nombre de quien realiza el pedido">
+                    </div>
+                    <div class="filter-group">
+                        <label>Autoriza</label>
+                        <input type="text" id="orden-autoriza" class="input-control" placeholder="Nombre de quien aprueba el pedido">
+                    </div>
+                </div>
+
+                <div class="margin-top-sm">
+                    <label>Productos del Proveedor</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <select id="orden-producto" class="select-input" style="flex: 1;">
+                            <option value="">Seleccionar producto...</option>
+                        </select>
+                        <input type="number" id="orden-cantidad" class="input-control" placeholder="Cantidad" min="1" value="1" style="width: 100px;">
+                        <input type="number" id="orden-costo" class="input-control" placeholder="Costo unit." min="0" step="0.01" style="width: 120px;">
+                        <button class="btn btn-sm btn-primary" onclick="agregarProductoOrden()">➕ Agregar</button>
+                    </div>
+                </div>
+
+                <div class="table-responsive margin-top-sm">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Cantidad</th>
+                                <th>Descripción</th>
+                                <th>Costo Unitario</th>
+                                <th>Subtotal</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orden-detalles-body">
+                            <tr><td colspan="6" class="text-center text-muted">No hay productos agregados</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="resumen" style="margin-top: 15px;">
+                    <span>Total de Productos: <strong id="orden-total-items">0</strong></span>
+                    <span>Total General: <strong id="orden-total">$0.00</strong></span>
+                </div>
+
+                <div class="margin-top-sm" style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button class="btn btn-success" onclick="guardarOrden()">
+                        🖨️ Guardar e Imprimir Orden
+                    </button>
+                    <button class="btn btn-secondary" onclick="limpiarOrden()">
+                        🔄 Limpiar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Lista de Órdenes -->
+            <div class="content-box">
+                <h3 style="margin-bottom: 15px;">Órdenes Registradas</h3>
+                <div class="table-responsive">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Proveedor</th>
+                                <th>Fecha</th>
+                                <th>Solicita</th>
+                                <th>Autoriza</th>
+                                <th>Total</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordenes-body">
+                            <tr><td colspan="8" class="text-center">Cargando órdenes...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/ordenes_compra.js"></script>
+</body>
+</html>

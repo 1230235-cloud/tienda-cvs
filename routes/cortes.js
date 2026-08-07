@@ -1,42 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../database');
+const { runGet, runRun, runQuery } = require('../database');
+const { verificarAdmin } = require('../middleware');
 
-// Helper para ejecutar queries con promesas
-function runQuery(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        try {
-            const rows = db.all(sql, params);
-            resolve(rows);
-        } catch (err) {
-            reject(err);
-        }
-    });
-}
-
-function runGet(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        try {
-            const row = db.get(sql, params);
-            resolve(row);
-        } catch (err) {
-            reject(err);
-        }
-    });
-}
-
-function runRun(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        try {
-            const result = db.run(sql, params);
-            resolve({ lastID: result.lastInsertRowid, changes: result.changes });
-        } catch (err) {
-            reject(err);
-        }
-    });
-}
-
-// Generar folio único
 function generarFolio() {
     const fecha = new Date();
     const año = fecha.getFullYear().toString().slice(-2);
@@ -46,17 +12,15 @@ function generarFolio() {
     return `C${año}${mes}${dia}${random}`;
 }
 
-// Obtener todos los cortes de caja
 router.get('/', async (req, res) => {
     try {
         const cortes = await runQuery('SELECT * FROM cortes_caja ORDER BY fecha_fin DESC');
-        res.json(cortes);
+        res.json({ cortes });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// Obtener un corte por ID
 router.get('/:id', async (req, res) => {
     try {
         const corte = await runGet('SELECT * FROM cortes_caja WHERE id = ?', [req.params.id]);
@@ -64,15 +28,13 @@ router.get('/:id', async (req, res) => {
             return res.status(404).json({ error: 'Corte no encontrado' });
         }
         
-        // Obtener movimientos asociados
         const movimientos = await runQuery('SELECT * FROM movimientos_caja WHERE corte_id = ?', [req.params.id]);
         
-        // Obtener ventas del periodo
         const ventas = await runQuery(`
             SELECT * FROM ventas 
-            WHERE fecha BETWEEN ? AND ?
+            WHERE corte_id = ?
             AND estado = 'COMPLETADA'
-        `, [corte.fecha_inicio, corte.fecha_fin]);
+        `, [corte.id]);
         
         res.json({ ...corte, movimientos, ventas });
     } catch (error) {
@@ -80,12 +42,10 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// Iniciar un nuevo corte de caja
-router.post('/iniciar', async (req, res) => {
+router.post('/iniciar', verificarAdmin, async (req, res) => {
     try {
         const { efectivo_inicial, usuario } = req.body;
         
-        // Verificar que no haya un corte abierto
         const corteAbierto = await runGet("SELECT * FROM cortes_caja WHERE estado = 'ABIERTO'");
         if (corteAbierto) {
             return res.status(400).json({ error: 'Ya existe un corte de caja abierto' });
@@ -105,8 +65,7 @@ router.post('/iniciar', async (req, res) => {
     }
 });
 
-// Cerrar corte de caja
-router.post('/:id/cerrar', async (req, res) => {
+router.post('/:id/cerrar', verificarAdmin, async (req, res) => {
     try {
         const corte = await runGet('SELECT * FROM cortes_caja WHERE id = ?', [req.params.id]);
         if (!corte) {
@@ -119,38 +78,36 @@ router.post('/:id/cerrar', async (req, res) => {
 
         const fechaFin = new Date().toISOString();
 
-        // Calcular ventas por método de pago
         const ventasEfectivoResult = await runGet(`
             SELECT COALESCE(SUM(total), 0) as total 
             FROM ventas 
-            WHERE fecha BETWEEN ? AND ? 
+            WHERE corte_id = ?
             AND metodo_pago = 'EFECTIVO' 
             AND estado = 'COMPLETADA'
-        `, [corte.fecha_inicio, fechaFin]);
+        `, [corte.id]);
         const ventasEfectivo = ventasEfectivoResult.total;
 
         const ventasTarjetaResult = await runGet(`
             SELECT COALESCE(SUM(total), 0) as total 
             FROM ventas 
-            WHERE fecha BETWEEN ? AND ? 
+            WHERE corte_id = ?
             AND metodo_pago = 'TARJETA' 
             AND estado = 'COMPLETADA'
-        `, [corte.fecha_inicio, fechaFin]);
+        `, [corte.id]);
         const ventasTarjeta = ventasTarjetaResult.total;
 
         const ventasTransferenciaResult = await runGet(`
             SELECT COALESCE(SUM(total), 0) as total 
             FROM ventas 
-            WHERE fecha BETWEEN ? AND ? 
+            WHERE corte_id = ?
             AND metodo_pago = 'TRANSFERENCIA' 
             AND estado = 'COMPLETADA'
-        `, [corte.fecha_inicio, fechaFin]);
+        `, [corte.id]);
         const ventasTransferencia = ventasTransferenciaResult.total;
 
         const totalVentas = ventasEfectivo + ventasTarjeta + ventasTransferencia;
         const efectivoEsperado = (parseFloat(corte.efectivo_inicial) || 0) + ventasEfectivo;
         
-        // Si el cliente envía el efectivo contado físicamente en caja, se usa; si no, se asume igual al esperado.
         const efectivoFinal = req.body.efectivo_final !== undefined && req.body.efectivo_final !== null && req.body.efectivo_final !== ''
             ? parseFloat(req.body.efectivo_final)
             : efectivoEsperado;
@@ -185,7 +142,6 @@ router.post('/:id/cerrar', async (req, res) => {
     }
 });
 
-// Obtener corte abierto
 router.get('/abierto/actual', async (req, res) => {
     try {
         const corte = await runGet("SELECT * FROM cortes_caja WHERE estado = 'ABIERTO'");
@@ -193,32 +149,31 @@ router.get('/abierto/actual', async (req, res) => {
             return res.json(null);
         }
         
-        // Obtener ventas parciales
         const ventasEfectivoResult = await runGet(`
             SELECT COALESCE(SUM(total), 0) as total 
             FROM ventas 
-            WHERE fecha >= ? 
+            WHERE corte_id = ?
             AND metodo_pago = 'EFECTIVO' 
             AND estado = 'COMPLETADA'
-        `, [corte.fecha_inicio]);
+        `, [corte.id]);
         const ventasEfectivo = ventasEfectivoResult.total;
 
         const ventasTarjetaResult = await runGet(`
             SELECT COALESCE(SUM(total), 0) as total 
             FROM ventas 
-            WHERE fecha >= ? 
+            WHERE corte_id = ?
             AND metodo_pago = 'TARJETA' 
             AND estado = 'COMPLETADA'
-        `, [corte.fecha_inicio]);
+        `, [corte.id]);
         const ventasTarjeta = ventasTarjetaResult.total;
 
         const ventasTransferenciaResult = await runGet(`
             SELECT COALESCE(SUM(total), 0) as total 
             FROM ventas 
-            WHERE fecha >= ? 
+            WHERE corte_id = ?
             AND metodo_pago = 'TRANSFERENCIA' 
             AND estado = 'COMPLETADA'
-        `, [corte.fecha_inicio]);
+        `, [corte.id]);
         const ventasTransferencia = ventasTransferenciaResult.total;
 
         res.json({ 

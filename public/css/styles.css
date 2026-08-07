@@ -157,26 +157,6 @@ body {
     box-shadow: 0 0 0 2px rgba(80, 192, 224, 0.15);
 }
 
-.demo-credentials {
-    background: var(--gray-100);
-    padding: 8px 10px;
-    border-radius: 6px;
-    margin: 8px 0;
-}
-
-.demo-title {
-    font-size: 0.78em;
-    color: var(--gray-700);
-    font-weight: 600;
-    margin-bottom: 4px;
-}
-
-.demo-buttons {
-    display: flex;
-    flex-direction: row;
-    gap: 6px;
-}
-
 .login-footer {
     text-align: center;
     color: var(--gray-500);
@@ -319,6 +299,40 @@ body {
 .nav-tab.active {
     color: var(--primary-light);
     border-bottom-color: var(--primary-light);
+}
+
+.tabs-container {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--gray-200);
+    margin-bottom: 16px;
+}
+
+.tab-btn {
+    padding: 10px 20px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--gray-600);
+    font-weight: 600;
+    font-size: 0.95em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: inherit;
+}
+
+.tab-btn:hover {
+    color: var(--primary-light);
+    background: var(--gray-50);
+}
+
+.tab-btn.active {
+    color: var(--primary-light);
+    border-bottom-color: var(--primary-light);
+}
+
+.tab-panel {
+    display: block;
 }
 
 .btn-logout {
@@ -2122,6 +2136,10 @@ table th,
 
 /* ===== PRINT / TICKET PRINTER ===== */
 @media print {
+    @page {
+        margin: 5mm;
+    }
+
     body * {
         visibility: hidden;
     }
@@ -2138,6 +2156,8 @@ table th,
         width: 100%;
         max-width: 100%;
         background: white;
+        padding-bottom: 40px;
+        margin-bottom: 50px;
     }
 
     .modal-overlay,

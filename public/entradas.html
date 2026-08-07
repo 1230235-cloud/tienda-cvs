@@ -132,22 +132,25 @@
                             <div class="form-group">
                                 <label>Categoría</label>
                                 <input type="text" id="nuevo-categoria" placeholder="Ej: Bebidas, Botanas, Abarrotes" list="categorias-list" class="input-control">
-                                <datalist id="categorias-list">
-                                    <option value="Bebidas">
-                                    <option value="Botanas">
-                                    <option value="Lácteos">
-                                    <option value="Abarrotes">
-                                    <option value="Galletas">
-                                    <option value="Dulces">
-                                    <option value="Limpieza">
-                                    <option value="Enlatados">
-                                    <option value="Hogar">
-                                </datalist>
+<datalist id="categorias-list">
+                                     <option value="Suplementos y Vitaminas">
+                                     <option value="Ropa y Accesorios">
+                                     <option value="Colpac">
+                                     <option value="Agua y Suero">
+                                     <option value="Semillas">
+                                     <option value="Infusiones">
+                                     <option value="Pan y Galletas">
+                                 </datalist>
                             </div>
 
                             <div class="form-group">
-                                <label>Precio de Venta al Público ($ sin IVA) *</label>
-                                <input type="number" step="0.01" id="nuevo-precio-venta" placeholder="0.00" required class="input-control">
+                                <label>Precio Público General ($ sin IVA) *</label>
+                                <input type="number" step="0.01" id="nuevo-precio-publico" placeholder="0.00" required class="input-control">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Precio Cliente CVS ($ sin IVA)</label>
+                                <input type="number" step="0.01" id="nuevo-precio-cvs" placeholder="0.00" class="input-control">
                             </div>
 
                             <div class="form-group">

@@ -1,42 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../database');
+const { runGet, runRun, runQuery } = require('../database');
+const { verificarAdmin } = require('../middleware');
 
-// Helper para ejecutar queries con promesas
-function runQuery(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        try {
-            const rows = db.all(sql, params);
-            resolve(rows);
-        } catch (err) {
-            reject(err);
-        }
-    });
-}
-
-function runGet(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        try {
-            const row = db.get(sql, params);
-            resolve(row);
-        } catch (err) {
-            reject(err);
-        }
-    });
-}
-
-function runRun(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        try {
-            const result = db.run(sql, params);
-            resolve({ lastID: result.lastInsertRowid, changes: result.changes });
-        } catch (err) {
-            reject(err);
-        }
-    });
-}
-
-// Generar folio único
 function generarFolio() {
     const fecha = new Date();
     const año = fecha.getFullYear().toString().slice(-2);
@@ -46,22 +12,21 @@ function generarFolio() {
     return `V${año}${mes}${dia}${random}`;
 }
 
-// Obtener todas las ventas
 router.get('/', async (req, res) => {
     try {
         const ventas = await runQuery(`
             SELECT v.*, 
                    (SELECT COUNT(*) FROM venta_detalles WHERE venta_id = v.id) as num_productos
             FROM ventas v 
-            ORDER BY v.fecha DESC
+            ORDER BY v.id DESC
+            LIMIT 100
         `);
-        res.json(ventas);
+        res.json({ ventas });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// Obtener una venta por ID con detalles
 router.get('/:id', async (req, res) => {
     try {
         const venta = await runGet('SELECT * FROM ventas WHERE id = ?', [req.params.id]);
@@ -82,62 +47,86 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// Crear nueva venta (SIN IVA)
 router.post('/', async (req, res) => {
-    const { productos, metodo_pago, cliente, usuario } = req.body;
-    
-    if (!productos || productos.length === 0) {
-        return res.status(400).json({ error: 'Se requiere al menos un producto' });
-    }
-
     try {
-        let total = 0;
-        
-        // Verificar stock y calcular total
+        const { productos, cliente, tipo_cliente, metodoPago, metodo_pago, pagoCon, pago_con, cambio, total, precio_final } = req.body;
+
+        if (!productos || !Array.isArray(productos) || productos.length === 0) {
+            return res.status(400).json({ error: 'El carrito está vacío' });
+        }
+
+        const metodo = metodoPago || metodo_pago || 'EFECTIVO';
+        let totalVenta = total || 0;
+
         for (const item of productos) {
             const producto = await runGet('SELECT * FROM productos WHERE id = ?', [item.producto_id]);
             if (!producto) {
-                throw new Error(`Producto con ID ${item.producto_id} no encontrado`);
+                return res.status(400).json({ error: `Producto con ID ${item.producto_id} no encontrado` });
             }
-            if (producto.stock < item.cantidad) {
-                throw new Error(`Stock insuficiente para ${producto.nombre}`);
+            if (producto.stock_tienda < item.cantidad) {
+                return res.status(400).json({ error: `Stock insuficiente para ${producto.nombre}` });
             }
-            total += item.cantidad * item.precio_unitario;
+            const precio = item.precio_unitario || item.precio || producto.precio;
+            totalVenta += item.cantidad * precio;
         }
+
+        let corteId = null;
+        try {
+            const corteAbierto = await runGet("SELECT id FROM cortes_caja WHERE estado = 'ABIERTO' LIMIT 1");
+            if (corteAbierto) {
+                corteId = corteAbierto.id;
+            }
+        } catch (corteErr) {
+            console.warn('No se pudo obtener corte activo, continuando sin corte_id:', corteErr.message);
+        }
+
+        const pago = parseFloat(pagoCon || pago_con) || totalVenta;
+        const cambioCalculado = parseFloat(cambio) || 0;
+        const clienteNombre = cliente || 'PÚBLICO GENERAL';
+        const usuarioNombre = req.body.usuario || 'ADMIN';
+
+        const fechaVenta = new Date().toISOString();
 
         const folio = generarFolio();
 
-        // Insertar venta (sin IVA)
         const ventaResult = await runRun(`
-            INSERT INTO ventas (folio, total, metodo_pago, cliente, usuario)
-            VALUES (?, ?, ?, ?, ?)
-        `, [folio, total, metodo_pago || 'EFECTIVO', cliente || 'GENERAL', usuario || 'ADMIN']);
+            INSERT INTO ventas (folio, total, metodo_pago, cliente, tipo_cliente, precio_final, usuario, corte_id, fecha)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [folio, totalVenta, metodo, clienteNombre, tipo_cliente || 'PUBLICO', precio_final || totalVenta, usuarioNombre, corteId, fechaVenta]);
 
-        // Insertar detalles y actualizar stock
         for (const item of productos) {
-            const itemSubtotal = item.cantidad * item.precio_unitario;
-            
+            const producto = await runGet('SELECT * FROM productos WHERE id = ?', [item.producto_id]);
+            const precio = item.precio_unitario || item.precio || (producto ? producto.precio : 0);
+            const itemSubtotal = item.cantidad * precio;
+
             await runRun(`
                 INSERT INTO venta_detalles (venta_id, producto_id, cantidad, precio_unitario, subtotal)
                 VALUES (?, ?, ?, ?, ?)
-            `, [ventaResult.lastID, item.producto_id, item.cantidad, item.precio_unitario, itemSubtotal]);
-
-            // Actualizar stock
-            await runRun(`
+            `, [ventaResult.lastID, item.producto_id, item.cantidad, precio, itemSubtotal]);
+await runRun(`
                 UPDATE productos 
-                SET stock = stock - ?, fecha_actualizacion = CURRENT_TIMESTAMP
+                SET stock_tienda = stock_tienda - ?, 
+                    fecha_actualizacion = CURRENT_TIMESTAMP
                 WHERE id = ?
             `, [item.cantidad, item.producto_id]);
         }
 
-        res.json({ id: ventaResult.lastID, folio, total });
+        res.status(201).json({
+            success: true,
+            ventaId: ventaResult.lastID,
+            folio: String(ventaResult.lastID),
+            total: totalVenta,
+            metodoPago: metodo,
+            pagoCon: pago,
+            cambio: cambioCalculado
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Error en POST /api/ventas:', error);
+        res.status(500).json({ error: 'Error del servidor: ' + error.message });
     }
 });
 
-// Cancelar venta
-router.put('/:id/cancelar', async (req, res) => {
+router.put('/:id/cancelar', verificarAdmin, async (req, res) => {
     try {
         const venta = await runGet('SELECT * FROM ventas WHERE id = ?', [req.params.id]);
         if (!venta) {
@@ -148,19 +137,17 @@ router.put('/:id/cancelar', async (req, res) => {
             return res.status(400).json({ error: 'La venta ya está cancelada' });
         }
 
-        // Obtener detalles de la venta
         const detalles = await runQuery('SELECT * FROM venta_detalles WHERE venta_id = ?', [req.params.id]);
         
-        // Restaurar stock
         for (const detalle of detalles) {
             await runRun(`
                 UPDATE productos 
-                SET stock = stock + ?, fecha_actualizacion = CURRENT_TIMESTAMP
+                SET stock_tienda = stock_tienda + ?, 
+                    fecha_actualizacion = CURRENT_TIMESTAMP
                 WHERE id = ?
             `, [detalle.cantidad, detalle.producto_id]);
         }
 
-        // Actualizar estado de venta
         await runRun('UPDATE ventas SET estado = ? WHERE id = ?', ['CANCELADA', req.params.id]);
 
         res.json({ message: 'Venta cancelada exitosamente' });
@@ -169,7 +156,6 @@ router.put('/:id/cancelar', async (req, res) => {
     }
 });
 
-// Obtener ventas por fecha
 router.get('/fecha/:fecha_inicio/:fecha_fin', async (req, res) => {
     try {
         const ventas = await runQuery(`
@@ -177,7 +163,7 @@ router.get('/fecha/:fecha_inicio/:fecha_fin', async (req, res) => {
             WHERE fecha BETWEEN ? AND ?
             ORDER BY fecha DESC
         `, [req.params.fecha_inicio, req.params.fecha_fin]);
-        res.json(ventas);
+        res.json({ ventas });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

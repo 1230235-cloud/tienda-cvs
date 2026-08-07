@@ -63,48 +63,150 @@
       transform: translateY(-2px);
       box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
     }
-    .ip-display {
+    .status-text {
       margin-top: 15px;
       padding: 10px;
       background: #f8fafc;
       border-radius: 8px;
-      font-size: 0.85em;
+      font-size: 0.9em;
       color: #334155;
       display: none;
     }
-    .ip-display.visible {
+    .status-text.visible {
       display: block;
+    }
+    .status-text.error {
+      background: #fef2f2;
+      color: #991b1b;
+    }
+    .status-text.success {
+      background: #f0fdf4;
+      color: #166534;
+    }
+    .manual-fallback {
+      margin-top: 15px;
+      display: none;
+    }
+    .manual-fallback.visible {
+      display: block;
+    }
+    .manual-fallback input {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 1em;
+      margin-bottom: 8px;
+    }
+    .manual-fallback button {
+      width: 100%;
+      padding: 10px;
+      background: linear-gradient(135deg, #50c0e0 0%, #90c050 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1em;
+      font-weight: 600;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
   <div class="selector-card">
-    <img src="assets/Logo vida sana-02.png" alt="Logo" onerror="this.style.display='none'">
+    <img src="./assets/logo-vida-sana.png" alt="Logo" onerror="this.style.display='none'">
     <h1>Tienda CVS</h1>
     <p>Selecciona el modo de operación</p>
-    <button class="mode-btn primary" onclick="selectMode('base')">
+    <button class="mode-btn primary" onclick="selectServerMode()">
       🖥️ Servidor Base
     </button>
-    <button class="mode-btn secondary" onclick="selectMode('client')">
-      📱 Cliente
+    <button class="mode-btn secondary" onclick="autoConnectTailscale()">
+      📱 Conectar a Servidor
     </button>
-    <div id="ip-display" class="ip-display"></div>
-  </div>
 
-  <script>
-    const { ipcRenderer } = require('electron');
+    <div id="status-text" class="status-text"></div>
 
-    function selectMode(mode) {
-      ipcRenderer.send('select-mode', mode);
-    }
+    <div id="manual-fallback" class="manual-fallback">
+      <input type="text" id="manual-ip" placeholder="Ingresa la IP del servidor (Ej: 100.91.160.121)" value="100.91.160.121">
+      <button onclick="connectManual()">Conectar</button>
+    </div>
 
-    ipcRenderer.on('mode-selected', (event, data) => {
-      const ipDisplay = document.getElementById('ip-display');
-      if (data.mode === 'base') {
-        ipDisplay.innerHTML = `<strong>IP Local:</strong> ${data.ip}<br><span style="font-size:0.8em;color:#64748b;">Otros dispositivos pueden conectarse a esta IP</span>`;
-        ipDisplay.classList.add('visible');
+    <script>
+      const { ipcRenderer } = require('electron');
+      const TAILSCALE_SERVER_URL = 'http://100.91.160.121:3000';
+
+      function selectServerMode() {
+        localStorage.setItem('server_mode', 'server');
+        localStorage.setItem('server_ip', 'localhost');
+
+        if (window.electronAPI && window.electronAPI.startServerMode) {
+          window.electronAPI.startServerMode();
+        } else if (typeof ipcRenderer !== 'undefined') {
+          ipcRenderer.send('select-mode', 'base');
+        } else {
+          window.location.href = 'index.html';
+        }
       }
-    });
-  </script>
+
+      function autoConnectTailscale() {
+        const serverUrl = TAILSCALE_SERVER_URL;
+        localStorage.setItem('serverUrl', serverUrl);
+        localStorage.setItem('server_mode', 'client');
+        
+        showStatus('🔗 Conectando al Servidor Principal vía Tailscale...', '');
+        
+        const cleanIp = formatServerUrl(serverUrl);
+        ipcRenderer.send('connect-to-server', cleanIp);
+      }
+
+      function showStatus(message, type = '') {
+        const el = document.getElementById('status-text');
+        el.textContent = message;
+        el.className = 'status-text visible ' + type;
+      }
+
+      function hideStatus() {
+        const el = document.getElementById('status-text');
+        el.className = 'status-text';
+        el.textContent = '';
+      }
+
+      function hideManualFallback() {
+        document.getElementById('manual-fallback').classList.remove('visible');
+      }
+
+      function connectToServer(ip) {
+        const cleanIp = formatServerUrl(ip);
+        localStorage.setItem('server_ip', cleanIp);
+        localStorage.setItem('server_mode', 'client');
+        ipcRenderer.send('connect-to-server', cleanIp);
+      }
+
+      function formatServerUrl(inputIp) {
+        let cleanIp = inputIp.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+        cleanIp = cleanIp.split(':')[0].trim();
+        return cleanIp;
+      }
+
+      function connectManual() {
+        const rawIp = document.getElementById('manual-ip').value.trim();
+        const cleanIp = formatServerUrl(rawIp);
+        if (!cleanIp) {
+          alert('Ingresa la IP del servidor');
+          return;
+        }
+        const serverUrl = `http://${cleanIp}:3000`;
+        localStorage.setItem('serverUrl', serverUrl);
+        localStorage.setItem('server_mode', 'client');
+        connectToServer(cleanIp);
+      }
+
+      function showManualFallback() {
+        const manualInput = document.getElementById('manual-ip');
+        if (manualInput && !manualInput.value.trim()) {
+          manualInput.value = '100.100.50.25'; // Tailscale default
+        }
+        document.getElementById('manual-fallback').classList.add('visible');
+      }
+    </script>
 </body>
 </html>

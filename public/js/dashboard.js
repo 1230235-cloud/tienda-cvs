@@ -2,7 +2,7 @@
 
 async function loadDashboardStats() {
     try {
-        const response = await fetch('/api/dashboard/estadisticas');
+        const response = await apiFetch('/api/dashboard/estadisticas');
         if (!response.ok) return;
         const data = await response.json();
         
@@ -54,8 +54,9 @@ async function loadDashboardStats() {
 
 async function loadAlertasStock() {
     try {
-        const response = await fetch('/api/dashboard/alertas-stock');
-        const productos = await response.json();
+        const response = await apiFetch('/api/dashboard/alertas-stock');
+        const data = await response.json();
+        const productos = window.ensureArray(data, 'productos');
         
         const tbody = document.getElementById('alertas-body');
         tbody.innerHTML = '';
@@ -71,15 +72,15 @@ async function loadAlertasStock() {
         }
         
         productos.forEach(producto => {
-            const row = document.createElement('tr');
-            const esAgotado = producto.stock <= 0;
+            const stock = producto.stock_actual ?? producto.stock ?? producto.existencia ?? (parseInt(producto.stock_bodega) || 0) + (parseInt(producto.stock_tienda) || 0);
+            const esAgotado = stock <= 0;
             const badgeClass = esAgotado ? 'badge-danger' : 'badge-warning';
             const estadoTexto = esAgotado ? '🚫 Agotado' : '⚠️ Bajo Stock';
             
             row.innerHTML = `
                 <td><code>${producto.codigo}</code></td>
                 <td><strong>${producto.nombre}</strong></td>
-                <td><span class="stock-count ${esAgotado ? 'text-danger' : 'text-warning'}">${producto.stock}</span></td>
+                <td><span class="stock-count ${esAgotado ? 'text-danger' : 'text-warning'}">${stock}</span></td>
                 <td>${producto.stock_minimo}</td>
                 <td><span class="badge ${badgeClass}">${estadoTexto}</span></td>
             `;
@@ -92,8 +93,9 @@ async function loadAlertasStock() {
 
 async function loadProductosMasVendidos() {
     try {
-        const response = await fetch('/api/dashboard/productos-mas-vendidos');
-        const productos = await response.json();
+        const response = await apiFetch('/api/dashboard/productos-mas-vendidos');
+        const data = await response.json();
+        const productos = window.ensureArray(data, 'productos');
         
         const tbody = document.getElementById('productos-vendidos-body');
         tbody.innerHTML = '';
@@ -125,8 +127,9 @@ async function loadProductosMasVendidos() {
 
 async function loadVentasMetodoPago() {
     try {
-        const response = await fetch('/api/dashboard/ventas-metodo-pago');
-        const ventas = await response.json();
+        const response = await apiFetch('/api/dashboard/ventas-metodo-pago');
+        const data = await response.json();
+        const ventas = window.ensureArray(data, 'ventas');
         
         const tbody = document.getElementById('metodos-pago-body');
         tbody.innerHTML = '';
@@ -166,8 +169,9 @@ async function descargarPDFVentasMes() {
     try {
         showNotification('Generando PDF de ventas del mes...', 'info');
         
-        const response = await fetch('/api/ventas');
-        const todasLasVentas = await response.json();
+        const response = await apiFetch('/api/ventas');
+        const data = await response.json();
+        const todasLasVentas = window.ensureArray(data, 'ventas');
         
         // Filtrar ventas del mes actual
         const ahora = new Date();
@@ -200,7 +204,7 @@ async function descargarPDFVentasMes() {
         tablaHTML += '<th>Folio</th><th>Fecha/Hora</th><th>Cliente</th><th>Monto</th><th>Método</th><th>Estado</th></tr></thead><tbody>';
         
         ventasMes.forEach(venta => {
-            const fecha = new Date(venta.fecha).toLocaleString('es-MX');
+            const fecha = formatearFechaLocal(venta.fecha);
             tablaHTML += `<tr>
                 <td>${venta.folio || '-'}</td>
                 <td>${fecha}</td>
@@ -282,6 +286,44 @@ async function descargarPDFVentasMes() {
         showNotification('Error al generar PDF', 'danger');
     }
 }
+
+async function actualizarMétricasDashboard() {
+    try {
+        const response = await apiFetch('/api/dashboard/estadisticas');
+        if (!response.ok) return;
+        const data = await response.json();
+        
+        if (document.getElementById('total-productos')) {
+            document.getElementById('total-productos').textContent = data.total_productos || 0;
+        }
+        if (document.getElementById('stock-bajo')) {
+            document.getElementById('stock-bajo').textContent = data.stock_bajo || 0;
+        }
+        if (document.getElementById('valor-inventario')) {
+            document.getElementById('valor-inventario').textContent = formatCurrency(data.valor_inventario);
+        }
+        if (document.getElementById('ventas-hoy')) {
+            const totalVentasHoy = data.ventas_hoy ? data.ventas_hoy.monto : 0;
+            document.getElementById('ventas-hoy').textContent = formatCurrency(totalVentasHoy);
+        }
+        if (document.getElementById('num-ventas-hoy')) {
+            const countVentasHoy = data.ventas_hoy ? data.ventas_hoy.total : 0;
+            document.getElementById('num-ventas-hoy').textContent = `${countVentasHoy} transacciones hoy`;
+        }
+        if (document.getElementById('ventas-mes')) {
+            const totalVentasMes = data.ventas_mes ? data.ventas_mes.monto : 0;
+            document.getElementById('ventas-mes').textContent = formatCurrency(totalVentasMes);
+        }
+        if (document.getElementById('num-ventas-mes')) {
+            const countVentasMes = data.ventas_mes ? data.ventas_mes.total : 0;
+            document.getElementById('num-ventas-mes').textContent = `${countVentasMes} ventas este mes`;
+        }
+    } catch (error) {
+        console.error('Error al actualizar métricas del dashboard:', error);
+    }
+}
+
+window.actualizarMétricasDashboard = actualizarMétricasDashboard;
 
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();

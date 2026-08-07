@@ -1,30 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../database');
+const { runGet, runRun } = require('../database');
+const { verificarAdmin } = require('../middleware');
 const bcrypt = require('bcryptjs');
-
-// Helper para ejecutar queries con promesas
-function runGet(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        try {
-            const row = db.get(sql, params);
-            resolve(row);
-        } catch (err) {
-            reject(err);
-        }
-    });
-}
-
-function run(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        try {
-            const result = db.run(sql, params);
-            resolve({ id: result.lastInsertRowid, changes: result.changes });
-        } catch (err) {
-            reject(err);
-        }
-    });
-}
 
 // Iniciar sesión
 router.post('/login', async (req, res) => {
@@ -54,10 +32,9 @@ router.post('/login', async (req, res) => {
 
         if (!validPassword && user.password === password) {
             const hashedPassword = await bcrypt.hash(password, 10);
-            await run('UPDATE usuarios SET password = ? WHERE id = ?', [hashedPassword, user.id]);
+            await runRun('UPDATE usuarios SET password = ? WHERE id = ?', [hashedPassword, user.id]);
         }
 
-        // Generar token simple para la sesión (solo ID y timestamp)
         const token = Buffer.from(`${user.id}:${Date.now()}`).toString('base64');
 
         res.json({
@@ -100,31 +77,37 @@ router.get('/verify', async (req, res) => {
 });
 
 // Registrar nuevo usuario
-router.post('/register', async (req, res) => {
+router.post('/register', verificarAdmin, async (req, res) => {
     try {
         const { username, password, nombre, rol } = req.body;
+        
+        console.log('[REGISTER] Intento de registro:', { username, nombre, rol, hasPassword: !!password });
         
         if (!username || !password || !nombre) {
             return res.status(400).json({ error: 'Usuario, contraseña y nombre son requeridos' });
         }
 
-        const existingUser = await runGet('SELECT id FROM usuarios WHERE username = ?', [username]);
+        const existingUser = await runGet('SELECT id FROM usuarios WHERE LOWER(username) = LOWER(?)', [username]);
+        console.log('[REGISTER] existingUser result:', existingUser);
+        
         if (existingUser) {
+            console.log('[REGISTER] El usuario ya existe:', existingUser.username);
             return res.status(400).json({ error: 'El usuario ya existe' });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const result = await run(
+        const result = await runRun(
             'INSERT INTO usuarios (username, password, nombre, rol) VALUES (?, ?, ?, ?)',
             [username, hashedPassword, nombre, rol || 'CAJERO']
         );
 
         res.json({
             message: 'Usuario creado exitosamente',
-            user: { id: result.id, username, nombre, rol: rol || 'CAJERO' }
+            user: { id: result.lastID, username, nombre, rol: rol || 'CAJERO' }
         });
     } catch (error) {
+        console.error('[REGISTER] Error:', error);
         res.status(500).json({ error: error.message });
     }
 });

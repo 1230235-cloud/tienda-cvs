@@ -20,6 +20,14 @@
                     <h1>💰 Punto de Venta (POS) - Tienda CVS</h1>
                     <p class="subtitle">Escanea el código de barras o selecciona productos para realizar cobros rápidos</p>
                 </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" onclick="imprimirVentasDelDia()">
+                        🖨️ Imprimir Ventas del Día
+                    </button>
+                    <button class="btn btn-warning" onclick="mostrarModalDevolucion()">
+                        ↩️ Devolución / Cancelar Venta
+                    </button>
+                </div>
             </div>
 
             <div class="ventas-layout">
@@ -49,8 +57,14 @@
                             📊 Ver Carrito
                         </button>
                     </div>
-
-                    <div class="form-row margin-bottom-sm">
+<div class="form-row margin-bottom-sm">
+                        <div class="form-group">
+                            <label>Tipo de Cliente</label>
+                            <select id="tipo-cliente" class="select-input">
+                                <option value="PUBLICO">Público General</option>
+                                <option value="CVS">Cliente CVS</option>
+                            </select>
+                        </div>
                         <div class="form-group">
                             <label>Cliente</label>
                             <input type="text" id="cliente" value="PÚBLICO GENERAL" class="input-control">
@@ -140,7 +154,31 @@
             <div id="ticket-content" class="ticket-content"></div>
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="cerrarModal()">Cerrar</button>
-                <button class="btn btn-primary" onclick="imprimirTicket()">🖨️ Imprimir en Impresora de Tickets</button>
+                <button class="btn btn-primary" onclick="imprimirTicket(ventaActual.id, 'tickets')">🖨️ Imprimir en Impresora de Tickets</button>
+                <button class="btn btn-secondary" onclick="imprimirTicket(ventaActual.id, 'normal')">📄 Imprimir en Impresora Normal (A4)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Devolución Modal -->
+    <div id="devolucion-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>↩️ Devolución / Cancelar Venta</h2>
+                <button class="btn-close" onclick="cerrarModalDevolucion()">×</button>
+            </div>
+            <div style="padding: 20px;">
+                <p class="text-muted" style="margin-bottom: 15px;">Ingresa el Folio o ID del ticket para procesar la devolución. El inventario del producto se restablecerá automáticamente.</p>
+                <div class="form-group">
+                    <label>Folio o ID de Venta</label>
+                    <input type="text" id="devolucion-folio" class="input-control" placeholder="Ej: V2508071234 o 15">
+                </div>
+                <div id="devolucion-info" style="margin-top: 15px;"></div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="cerrarModalDevolucion()">Cancelar</button>
+                <button class="btn btn-warning" onclick="buscarVentaDevolucion()">🔍 Buscar Venta</button>
+                <button class="btn btn-danger" onclick="procesarDevolucion()" id="btn-confirmar-devolucion" style="display: none;">↩️ Confirmar Devolución</button>
             </div>
         </div>
     </div>
