@@ -59,9 +59,9 @@ router.post('/crear-y-entrar', verificarAdmin, async (req, res) => {
         const pCompra = parseFloat(precio_compra) || precioPub;
 
         const prodResult = await runRun(`
-            INSERT INTO productos (codigo, nombre, categoria, precio, precio_publico, precio_cvs, stock_bodega, stock_minimo)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `, [codigo, nombre, categoria || 'GENERAL', precioPub, precioPub, precioCVS, parseInt(cantidad), parseInt(stock_minimo) || 5]);
+            INSERT INTO productos (codigo, nombre, categoria, precio, precio_publico, precio_cvs, stock_bodega, stock_minimo, proveedor)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [codigo, nombre, categoria || 'GENERAL', precioPub, precioPub, precioCVS, parseInt(cantidad), parseInt(stock_minimo) || 5, proveedor || 'GENERAL']);
 
         const productoId = prodResult.lastID;
         const total = parseInt(cantidad) * pCompra;
@@ -128,9 +128,10 @@ router.post('/', verificarAdmin, async (req, res) => {
             await runRun(`
                 UPDATE productos 
                 SET stock_bodega = stock_bodega + ?, 
+                    proveedor = ?,
                     fecha_actualizacion = CURRENT_TIMESTAMP
                 WHERE id = ?
-            `, [item.cantidad, item.producto_id]);
+            `, [item.cantidad, proveedor || 'GENERAL', item.producto_id]);
         }
 
         const entrada = await runGet('SELECT * FROM entradas WHERE id = ?', [entradaResult.lastID]);

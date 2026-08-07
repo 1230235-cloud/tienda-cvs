@@ -57,15 +57,12 @@ async function loadProductosByProveedor(proveedor) {
     select.innerHTML = '<option value="">-- Ver todos los productos --</option>';
 
     try {
-        const res = await apiFetch('/api/inventario');
+        const res = await apiFetch(`/api/productos-por-proveedor?proveedor=${encodeURIComponent(proveedor)}`);
         if (!res.ok) return;
         const data = await res.json();
-        const todosProductos = window.ensureArray(data, 'productos');
+        const productos = Array.isArray(data) ? data : (data.productos || []);
 
-        const proveedorSeleccionado = proveedor || '';
-        const filtrados = filtrarProductosPorProveedor(proveedorSeleccionado, todosProductos);
-
-        filtrados.forEach(p => {
+        productos.forEach(p => {
             const stockTotal = (parseInt(p.stock_bodega) || 0) + (parseInt(p.stock_tienda) || 0);
             const sugerido = Math.max(1, (parseInt(p.stock_minimo) || 5) - stockTotal);
             const opt = document.createElement('option');

@@ -31,7 +31,6 @@ async function loadProductos() {
 
         renderProductosGrid(productosCatalogo);
 
-        // Verificar si viene una búsqueda por URL
         const urlParams = new URLSearchParams(window.location.search);
         const buscarQuery = urlParams.get('buscar');
         if (buscarQuery) {
@@ -41,6 +40,25 @@ async function loadProductos() {
     } catch (error) {
         console.error('Error al cargar productos:', error);
     }
+}
+
+async function cargarProductosPorProveedor(proveedor) {
+    try {
+        const response = await apiFetch(`/api/productos-por-proveedor?proveedor=${encodeURIComponent(proveedor)}`);
+        if (!response.ok) return;
+        const data = await response.json();
+        const productos = Array.isArray(data) ? data : (data.productos || []);
+        productosCatalogo = productos;
+        renderProductosGrid(productos);
+    } catch (error) {
+        console.error('Error al cargar productos por proveedor:', error);
+    }
+}
+
+function mostrarTodosProductos() {
+    loadProductos();
+    const selectEntrada = document.getElementById('proveedor-entrada');
+    if (selectEntrada) selectEntrada.value = '';
 }
 
 function renderProductosGrid(lista) {
@@ -498,12 +516,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (this.value === '__nuevo__') {
                 mostrarModalNuevoProveedor();
                 this.value = '';
-                renderProductosGrid(productosCatalogo);
+                loadProductos();
                 return;
             }
             const proveedorSeleccionado = this.value.trim();
-            const filtrados = filtrarProductosPorProveedor(proveedorSeleccionado, productosCatalogo);
-            renderProductosGrid(filtrados);
+            if (!proveedorSeleccionado) {
+                loadProductos();
+                return;
+            }
+            cargarProductosPorProveedor(proveedorSeleccionado);
         });
     }
 

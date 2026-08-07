@@ -86,6 +86,36 @@ expressApp.delete('/api/proveedores/:id', async (req, res) => {
     }
 });
 
+// =====================================
+// PRODUCTOS POR PROVEEDOR
+// =====================================
+
+// GET: Obtener productos filtrados por proveedor (directo o por historial de entradas)
+expressApp.get('/api/productos-por-proveedor', async (req, res) => {
+    try {
+        const { proveedor } = req.query;
+        if (!proveedor || proveedor === 'todos') {
+            const todos = await queryAll('SELECT * FROM productos');
+            return res.json(todos || []);
+        }
+
+        const sql = `
+            SELECT DISTINCT p.*
+            FROM productos p
+            LEFT JOIN entrada_detalles de ON p.id = de.producto_id
+            LEFT JOIN entradas e ON de.entrada_id = e.id
+            WHERE LOWER(p.proveedor) = LOWER(?)
+               OR LOWER(e.proveedor) = LOWER(?)
+               OR LOWER(p.nombre_proveedor) = LOWER(?)
+        `;
+        const productos = await queryAll(sql, [proveedor, proveedor, proveedor]);
+        res.json(productos || []);
+    } catch (err) {
+        console.error("Error al obtener productos por proveedor:", err);
+        res.status(500).json([]);
+    }
+});
+
 // Servir archivos estáticos
 expressApp.use(express.static(publicPath));
 
