@@ -2,44 +2,40 @@
 
 async function loadProveedores() {
     try {
-        const response = await apiFetch('/api/proveedores');
-        if (!response.ok) return;
-        const data = await response.json();
-        console.log('Proveedores recibidos:', data);
+        const res = await fetch('/api/proveedores');
+        const data = await res.json();
+        console.log("DATOS RECIBIDOS DEL SERVIDOR:", data);
 
         const lista = Array.isArray(data) ? data : (data.proveedores || data.data || []);
-        renderProveedores(lista);
-    } catch (error) {
-        console.error('Error al cargar proveedores:', error);
+        const tbody = document.getElementById('tablaProveedores');
+
+        if (!tbody) {
+            console.error("No se encontró el elemento #tablaProveedores en el HTML");
+            return;
+        }
+
+        if (lista.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center">No hay proveedores registrados</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = lista.map(p => `
+            <tr>
+                <td>${p.id || ''}</td>
+                <td><strong>${p.nombre || ''}</strong></td>
+                <td>${p.contacto || '-'}</td>
+                <td>${p.telefono || '-'}</td>
+                <td>${p.observaciones || '-'}</td>
+                <td>
+                    <button onclick="editarProveedor(${p.id})" class="btn-sm btn-warning">✏️ Editar</button>
+                    <button onclick="eliminarProveedor(${p.id})" class="btn-sm btn-danger">🗑️ Eliminar</button>
+                </td>
+            </tr>
+        `).join('');
+
+    } catch (err) {
+        console.error("Error al cargar proveedores en tabla:", err);
     }
-}
-
-function renderProveedores(proveedores) {
-    const tbody = document.getElementById('proveedores-body');
-    if (!tbody) return;
-
-    if (proveedores.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay proveedores registrados</td></tr>';
-        return;
-    }
-
-    tbody.innerHTML = proveedores.map(p => `
-        <tr>
-            <td>${p.id}</td>
-            <td><strong>${p.nombre}</strong></td>
-            <td>${p.contacto || '-'}</td>
-            <td>${p.telefono || '-'}</td>
-            <td>${p.observaciones || '-'}</td>
-            <td>
-                <button class="btn btn-sm btn-info" onclick="editarProveedor(${p.id})" title="Editar">
-                    ✏️
-                </button>
-                <button class="btn btn-sm btn-danger" onclick="eliminarProveedor(${p.id}, '${(p.nombre || '').replace(/'/g, "\\'")}')" title="Eliminar">
-                    🗑️
-                </button>
-            </td>
-        </tr>
-    `).join('');
 }
 
 function mostrarModalNuevoProveedor() {
@@ -120,20 +116,28 @@ async function guardarProveedor() {
     }
 }
 
-async function eliminarProveedor(id, nombre) {
-    if (!confirm(`¿Estás seguro de eliminar el proveedor "${nombre}"?`)) {
-        return;
-    }
-
+async function eliminarProveedor(id) {
     try {
-        const response = await apiFetch(`/api/proveedores/${id}`, { method: 'DELETE' });
-        const data = await response.json();
+        const response = await apiFetch(`/api/proveedores/${id}`);
+        if (!response.ok) {
+            showToast('Error', 'No se pudo cargar el proveedor', 'error');
+            return;
+        }
+        const p = await response.json();
+        const nombre = p.nombre || '';
 
-        if (response.ok) {
+        if (!confirm(`¿Estás seguro de eliminar el proveedor "${nombre}"?`)) {
+            return;
+        }
+
+        const delRes = await apiFetch(`/api/proveedores/${id}`, { method: 'DELETE' });
+        const delData = await delRes.json();
+
+        if (delRes.ok) {
             showToast('Proveedor Eliminado', `Proveedor "${nombre}" eliminado correctamente`, 'success');
-            loadProveedores();
+            await loadProveedores();
         } else {
-            showToast('Error', data.error || 'No se pudo eliminar el proveedor', 'error');
+            showToast('Error', delData.error || 'No se pudo eliminar el proveedor', 'error');
         }
     } catch (error) {
         console.error('Error al eliminar proveedor:', error);
@@ -144,5 +148,6 @@ async function eliminarProveedor(id, nombre) {
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
     renderGlobalHeader('proveedores');
-    loadProveedores();
 });
+
+loadProveedores();
