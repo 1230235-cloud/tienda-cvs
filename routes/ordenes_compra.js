@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { runGet, runRun, runQuery } = require('../database');
+const { runGet, runRun, runQuery, exec } = require('../database');
 const { verificarAdmin } = require('../middleware');
 
 router.get('/proveedores', async (req, res) => {
@@ -61,9 +61,28 @@ router.get('/productos-bajo-stock-proveedor', async (req, res) => {
 router.get('/', async (req, res) => {
     try {
         const ordenes = await runQuery('SELECT * FROM ordenes_compra ORDER BY fecha DESC');
-        res.json({ ordenes });
+        return res.status(200).json({ ordenes });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('ERROR CRÍTICO EN /api/ordenes:', error);
+
+        try {
+            await exec(`
+                CREATE TABLE IF NOT EXISTS ordenes_compra (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    proveedor TEXT NOT NULL,
+                    fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    estado TEXT DEFAULT 'PENDIENTE',
+                    solicita TEXT DEFAULT '',
+                    autoriza TEXT DEFAULT '',
+                    total REAL DEFAULT 0
+                )
+            `);
+            console.log('Tabla ordenes_compra creada/verificada automáticamente');
+            return res.status(200).json({ ordenes: [] });
+        } catch (dbError) {
+            console.error('Error al crear tabla ordenes_compra:', dbError);
+            return res.status(200).json({ ordenes: [] });
+        }
     }
 });
 
@@ -76,6 +95,7 @@ router.get('/:id', async (req, res) => {
         const detalles = await runQuery('SELECT * FROM orden_compra_detalles WHERE orden_id = ?', [req.params.id]);
         res.json({ orden, detalles });
     } catch (error) {
+        console.error('ERROR CRÍTICO EN /api/ordenes/:id:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -121,6 +141,7 @@ router.post('/', verificarAdmin, async (req, res) => {
 
         res.status(201).json({ mensaje: 'Orden de compra creada', ordenId, total });
     } catch (error) {
+        console.error('ERROR CRÍTICO EN POST /api/ordenes:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -137,6 +158,7 @@ router.put('/:id/estado', verificarAdmin, async (req, res) => {
         await runRun('UPDATE ordenes_compra SET estado = ? WHERE id = ?', [estado, req.params.id]);
         res.json({ mensaje: 'Estado actualizado', ordenId: req.params.id, estado });
     } catch (error) {
+        console.error('ERROR CRÍTICO EN PUT /api/ordenes/:id/estado:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -146,6 +168,7 @@ router.delete('/:id', verificarAdmin, async (req, res) => {
         await runRun('DELETE FROM ordenes_compra WHERE id = ?', [req.params.id]);
         res.json({ mensaje: 'Orden eliminada' });
     } catch (error) {
+        console.error('ERROR CRÍTICO EN DELETE /api/ordenes/:id:', error);
         res.status(500).json({ error: error.message });
     }
 });

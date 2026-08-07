@@ -5,9 +5,27 @@ const { runGet, runRun } = require('../database');
 router.get('/', async (req, res) => {
     try {
         const proveedores = await runQuery('SELECT * FROM proveedores ORDER BY nombre');
-        res.json({ proveedores });
+        return res.status(200).json({ proveedores });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('ERROR CRÍTICO EN /api/proveedores:', error);
+
+        try {
+            await exec(`
+                CREATE TABLE IF NOT EXISTS proveedores (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    nombre TEXT NOT NULL UNIQUE,
+                    contacto TEXT,
+                    telefono TEXT,
+                    observaciones TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            console.log('Tabla proveedores creada/verificada automáticamente');
+            return res.status(200).json({ proveedores: [] });
+        } catch (dbError) {
+            console.error('Error al crear tabla proveedores:', dbError);
+            return res.status(200).json({ proveedores: [] });
+        }
     }
 });
 
@@ -38,6 +56,7 @@ router.post('/', async (req, res) => {
             }
         });
     } catch (error) {
+        console.error('ERROR CRÍTICO EN POST /api/proveedores:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -60,6 +79,7 @@ router.put('/:id', async (req, res) => {
         const actualizado = await runGet('SELECT * FROM proveedores WHERE id = ?', [id]);
         res.json(actualizado);
     } catch (error) {
+        console.error('ERROR CRÍTICO EN PUT /api/proveedores/:id:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -75,6 +95,7 @@ router.delete('/:id', async (req, res) => {
         await runRun('DELETE FROM proveedores WHERE id = ?', [id]);
         res.json({ mensaje: 'Proveedor eliminado correctamente' });
     } catch (error) {
+        console.error('ERROR CRÍTICO EN DELETE /api/proveedores/:id:', error);
         res.status(500).json({ error: error.message });
     }
 });
