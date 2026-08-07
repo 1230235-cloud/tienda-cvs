@@ -172,6 +172,9 @@ function renderBodegaTable(lista) {
             <td><strong>${stockBodega}</strong></td>
             <td>${estadoHtml}</td>
             <td>
+                <button class="btn btn-sm btn-info" onclick="abrirModalEditarProducto(${producto.id})" title="Editar">
+                    ✏️
+                </button>
                 <button class="btn btn-sm btn-success" onclick="abrirModalAgregarStock(${producto.id}, ${stockBodega})">
                     ➕ Agregar
                 </button>
@@ -220,6 +223,9 @@ function renderTiendaTable(lista) {
             <td><span class="stock-num ${stockTienda <= minStock ? 'text-danger' : ''}">${stockTienda}</span></td>
             <td>${estadoHtml}</td>
             <td>
+                <button class="btn btn-sm btn-info" onclick="abrirModalEditarProducto(${producto.id})" title="Editar">
+                    ✏️
+                </button>
                 <button class="btn btn-sm btn-danger" onclick="confirmarEliminarProducto(${producto.id}, '${producto.nombre.replace(/'/g, "\\'")}')">
                     🗑️ Eliminar
                 </button>
@@ -247,6 +253,89 @@ async function confirmarEliminarProducto(id, nombre) {
             console.error('Error al eliminar producto:', error);
             showToast('Error de Conexión', 'No se pudo conectar con el servidor para eliminar el producto', 'error');
         }
+    }
+}
+
+// =====================================
+// EDITAR PRODUCTO
+// =====================================
+
+async function abrirModalEditarProducto(productoId) {
+    try {
+        const response = await apiFetch(`/api/inventario/${productoId}`);
+        if (!response.ok) {
+            showToast('Error', 'No se pudo cargar el producto', 'error');
+            return;
+        }
+        const producto = await response.json();
+
+        document.getElementById('edit-producto-id').value = producto.id;
+        document.getElementById('edit-nombre').value = producto.nombre || '';
+        document.getElementById('edit-codigo').value = producto.codigo || '';
+        document.getElementById('edit-categoria').value = producto.categoria || '';
+        document.getElementById('edit-proveedor').value = producto.proveedor || '';
+        document.getElementById('edit-precio-publico').value = producto.precio_publico || producto.precio || '';
+        document.getElementById('edit-precio-cvs').value = producto.precio_cvs || '';
+        document.getElementById('edit-precio').value = producto.precio || '';
+        document.getElementById('edit-stock-minimo').value = producto.stock_minimo || 5;
+
+        const modal = document.getElementById('modal-editar-producto');
+        if (modal) {
+            modal.style.display = 'flex';
+        }
+    } catch (error) {
+        console.error('Error al cargar producto para editar:', error);
+        showToast('Error', 'No se pudo cargar el producto', 'error');
+    }
+}
+
+function cerrarModalEditarProducto() {
+    const modal = document.getElementById('modal-editar-producto');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+async function guardarEdicionProducto() {
+    const id = document.getElementById('edit-producto-id').value;
+    const nombre = document.getElementById('edit-nombre').value.trim();
+    const codigo = document.getElementById('edit-codigo').value.trim();
+
+    if (!nombre || !codigo) {
+        showToast('Campos Requeridos', 'Nombre y Código de Barras son obligatorios', 'warning');
+        return;
+    }
+
+    const payload = {
+        nombre,
+        codigo,
+        categoria: document.getElementById('edit-categoria').value.trim(),
+        proveedor: document.getElementById('edit-proveedor').value.trim(),
+        precio_publico: parseFloat(document.getElementById('edit-precio-publico').value) || 0,
+        precio_cvs: parseFloat(document.getElementById('edit-precio-cvs').value) || 0,
+        precio: parseFloat(document.getElementById('edit-precio').value) || 0,
+        stock_minimo: parseInt(document.getElementById('edit-stock-minimo').value) || 5
+    };
+
+    try {
+        const response = await apiFetch(`/api/inventario/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showToast('Producto Actualizado', `Producto "${nombre}" actualizado correctamente`, 'success');
+            cerrarModalEditarProducto();
+            loadProductos();
+        } else {
+            showToast('Error', data.error || 'No se pudo actualizar el producto', 'error');
+        }
+    } catch (error) {
+        console.error('Error al actualizar producto:', error);
+        showToast('Error de Conexión', 'No se pudo conectar con el servidor', 'error');
     }
 }
 

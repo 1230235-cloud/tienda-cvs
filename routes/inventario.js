@@ -41,7 +41,44 @@ router.post('/', verificarAdmin, async (req, res) => {
 });
 
 router.put('/:id', verificarAdmin, async (req, res) => {
-    return res.status(403).json({ error: 'No se pueden editar productos desde inventario. Use el módulo de Entradas de Mercancía para modificar stock o precios.' });
+    try {
+        const { id } = req.params;
+        const producto = await runGet('SELECT * FROM productos WHERE id = ?', [id]);
+        if (!producto) {
+            return res.status(404).json({ error: 'Producto no encontrado' });
+        }
+
+        const { nombre, codigo, categoria, precio, precio_publico, precio_cvs, stock_minimo, proveedor } = req.body;
+
+        await runRun(`
+            UPDATE productos SET
+                nombre = ?,
+                codigo = ?,
+                categoria = ?,
+                precio = ?,
+                precio_publico = ?,
+                precio_cvs = ?,
+                stock_minimo = ?,
+                proveedor = ?,
+                fecha_actualizacion = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `, [
+            nombre || producto.nombre,
+            codigo || producto.codigo,
+            categoria || producto.categoria,
+            precio ?? producto.precio,
+            precio_publico ?? producto.precio_publico,
+            precio_cvs ?? producto.precio_cvs,
+            stock_minimo ?? producto.stock_minimo,
+            proveedor ?? producto.proveedor,
+            id
+        ]);
+
+        const actualizado = await runGet('SELECT * FROM productos WHERE id = ?', [id]);
+        res.json(actualizado);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 router.delete('/:id', verificarAdmin, async (req, res) => {

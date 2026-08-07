@@ -155,6 +155,68 @@
         </main>
     </div>
 
+    <!-- Modal de Editar Producto -->
+    <div id="modal-editar-producto" class="modal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>✏️ Editar Producto</h3>
+                <button class="modal-close" onclick="cerrarModalEditarProducto()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-editar-producto">
+                    <input type="hidden" id="edit-producto-id">
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label>Nombre del Producto *</label>
+                            <input type="text" id="edit-nombre" required class="input-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Código de Barras *</label>
+                            <input type="text" id="edit-codigo" required class="input-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Categoría</label>
+                            <input type="text" id="edit-categoria" list="categorias-list" class="input-control">
+                            <datalist id="categorias-list">
+                                <option value="Suplementos y Vitaminas">
+                                <option value="Ropa y Accesorios">
+                                <option value="Colpac">
+                                <option value="Agua y Suero">
+                                <option value="Semillas">
+                                <option value="Infusiones">
+                                <option value="Pan y Galletas">
+                            </datalist>
+                        </div>
+                        <div class="form-group">
+                            <label>Proveedor</label>
+                            <input type="text" id="edit-proveedor" class="input-control" placeholder="Proveedor General">
+                        </div>
+                        <div class="form-group">
+                            <label>Precio Público ($)</label>
+                            <input type="number" step="0.01" id="edit-precio-publico" class="input-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Precio CVS ($)</label>
+                            <input type="number" step="0.01" id="edit-precio-cvs" class="input-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Precio Base ($)</label>
+                            <input type="number" step="0.01" id="edit-precio" class="input-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Stock Mínimo</label>
+                            <input type="number" id="edit-stock-minimo" class="input-control">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="cerrarModalEditarProducto()">Cancelar</button>
+                <button class="btn btn-primary" onclick="guardarEdicionProducto()">💾 Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal de Traspaso -->
     <div id="modal-traspaso" class="modal" style="display: none;">
         <div class="modal-content">
