@@ -5,8 +5,10 @@ async function loadProveedores() {
         const response = await apiFetch('/api/proveedores');
         if (!response.ok) return;
         const data = await response.json();
-        const proveedores = window.ensureArray(data, 'proveedores');
-        renderProveedores(proveedores);
+        console.log('Proveedores recibidos:', data);
+
+        const lista = Array.isArray(data) ? data : (data.proveedores || data.data || []);
+        renderProveedores(lista);
     } catch (error) {
         console.error('Error al cargar proveedores:', error);
     }

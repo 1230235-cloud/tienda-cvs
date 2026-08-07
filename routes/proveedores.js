@@ -5,7 +5,7 @@ const { runGet, runRun } = require('../database');
 router.get('/', async (req, res) => {
     try {
         const proveedores = await runQuery('SELECT * FROM proveedores ORDER BY nombre');
-        return res.status(200).json({ proveedores });
+        return res.status(200).json(proveedores);
     } catch (error) {
         console.error('ERROR CRÍTICO EN /api/proveedores:', error);
 
@@ -21,10 +21,10 @@ router.get('/', async (req, res) => {
                 )
             `);
             console.log('Tabla proveedores creada/verificada automáticamente');
-            return res.status(200).json({ proveedores: [] });
+            return res.status(200).json([]);
         } catch (dbError) {
             console.error('Error al crear tabla proveedores:', dbError);
-            return res.status(200).json({ proveedores: [] });
+            return res.status(200).json([]);
         }
     }
 });
