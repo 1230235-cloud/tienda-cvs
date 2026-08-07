@@ -32,6 +32,7 @@ const cortesRoutes = require('./routes/cortes');
 const dashboardRoutes = require('./routes/dashboard');
 const authRoutes = require('./routes/auth');
 const ordenesCompraRoutes = require('./routes/ordenes_compra');
+const proveedoresRoutes = require('./routes/proveedores');
 
 // Usar rutas
 expressApp.use('/api/inventario', inventarioRoutes);
@@ -41,6 +42,7 @@ expressApp.use('/api/cortes', cortesRoutes);
 expressApp.use('/api/dashboard', dashboardRoutes);
 expressApp.use('/api/auth', authRoutes);
 expressApp.use('/api/ordenes', ordenesCompraRoutes);
+expressApp.use('/api/proveedores', proveedoresRoutes);
 
 // Servir archivos estáticos
 expressApp.use(express.static(publicPath));

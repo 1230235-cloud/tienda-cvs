@@ -1,6 +1,6 @@
 {
   "name": "sistema-inventario-tienda",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Sistema de inventario para tienda con módulos de inventario, ventas, entradas y corte de caja",
   "main": "main.js",
   "scripts": {

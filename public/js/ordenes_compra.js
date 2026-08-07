@@ -15,18 +15,20 @@ async function loadOrdenes() {
 
 async function loadProveedores() {
     try {
-        const res = await apiFetch('/api/ordenes/proveedores');
+        const res = await apiFetch('/api/proveedores');
         if (!res.ok) return;
         const data = await res.json();
         const proveedores = window.ensureArray(data, 'proveedores');
-        const datalist = document.getElementById('proveedores-list');
-        if (!datalist) return;
+        const select = document.getElementById('orden-proveedor');
+        if (!select) return;
 
-        datalist.innerHTML = '';
+        select.innerHTML = '<option value="">Seleccionar proveedor...</option>' +
+            '<option value="__nuevo__">➕ Agregar Nuevo Proveedor</option>';
         proveedores.forEach(p => {
             const opt = document.createElement('option');
-            opt.value = p.proveedor;
-            datalist.appendChild(opt);
+            opt.value = p.nombre;
+            opt.textContent = p.nombre;
+            select.appendChild(opt);
         });
     } catch (error) {
         console.error('Error al cargar proveedores:', error);
@@ -367,6 +369,56 @@ function limpiarOrden() {
     if (productoSelect) productoSelect.innerHTML = '<option value="">Seleccionar producto...</option>';
 }
 
+// =====================================
+// PROVEEDORES
+// =====================================
+
+function mostrarModalNuevoProveedor() {
+    document.getElementById('nuevo-proveedor-nombre').value = '';
+    document.getElementById('nuevo-proveedor-contacto').value = '';
+    document.getElementById('nuevo-proveedor-telefono').value = '';
+    document.getElementById('nuevo-proveedor-modal').classList.add('active');
+}
+
+function cerrarModalNuevoProveedor() {
+    document.getElementById('nuevo-proveedor-modal').classList.remove('active');
+}
+
+async function guardarNuevoProveedor() {
+    const nombre = document.getElementById('nuevo-proveedor-nombre').value.trim();
+    const contacto = document.getElementById('nuevo-proveedor-contacto').value.trim();
+    const telefono = document.getElementById('nuevo-proveedor-telefono').value.trim();
+
+    if (!nombre) {
+        showToast('Campo Requerido', 'Ingresa el nombre del proveedor', 'warning');
+        return;
+    }
+
+    try {
+        const response = await apiFetch('/api/proveedores', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre, contacto, telefono })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showToast('Proveedor Guardado', `Proveedor "${nombre}" registrado exitosamente`, 'success');
+            cerrarModalNuevoProveedor();
+            await loadProveedores();
+
+            const select = document.getElementById('orden-proveedor');
+            if (select) select.value = nombre;
+        } else {
+            showToast('Error', data.error || 'No se pudo guardar el proveedor', 'error');
+        }
+    } catch (error) {
+        console.error('Error al guardar proveedor:', error);
+        showToast('Error de Conexión', 'No se pudo guardar el proveedor', 'error');
+    }
+}
+
 function renderOrdenes() {
     const tbody = document.getElementById('ordenes-body');
     if (!tbody) return;
@@ -518,19 +570,18 @@ document.addEventListener('DOMContentLoaded', () => {
     loadProveedores();
     loadOrdenes();
 
-    const proveedorInput = document.getElementById('orden-proveedor');
-    if (proveedorInput) {
-        proveedorInput.addEventListener('change', function() {
+    const proveedorSelect = document.getElementById('orden-proveedor');
+    if (proveedorSelect) {
+        proveedorSelect.addEventListener('change', function() {
+            if (this.value === '__nuevo__') {
+                mostrarModalNuevoProveedor();
+                this.value = '';
+                return;
+            }
             loadProductosByProveedor(this.value);
-            // Auto-cargar productos bajo stock cuando se selecciona un proveedor de la lista
             if (this.value && this.value.length > 2) {
                 autoCargarProductosBajoStock(this.value);
             }
-        });
-        proveedorInput.addEventListener('input', function() {
-            // Limpiar productos al escribir
-            const select = document.getElementById('orden-producto');
-            if (select) select.innerHTML = '<option value="">Seleccionar producto...</option>';
         });
     }
 });

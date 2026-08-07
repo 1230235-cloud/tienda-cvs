@@ -235,7 +235,7 @@ async function guardarNuevoProducto(e) {
         precio_compra: parseFloat(document.getElementById('nuevo-precio-compra').value) || parseFloat(document.getElementById('nuevo-precio-publico').value),
         cantidad: parseInt(document.getElementById('nuevo-stock-inicial').value) || 1,
         stock_minimo: parseInt(document.getElementById('nuevo-stock-minimo').value) || 5,
-        proveedor: document.getElementById('nuevo-proveedor').value.trim() || 'Proveedor General',
+        proveedor: document.getElementById('nuevo-proveedor').value || 'Proveedor General',
         usuario: user.nombre || 'ADMIN',
         observaciones: document.getElementById('nuevo-observaciones').value.trim() || 'Alta de producto nuevo'
     };
@@ -380,11 +380,120 @@ function regresarBusqueda() {
     renderProductosGrid(productosCatalogo);
 }
 
+// =====================================
+// PROVEEDORES
+// =====================================
+
+async function loadProveedores() {
+    try {
+        const response = await apiFetch('/api/proveedores');
+        if (!response.ok) return;
+        const data = await response.json();
+        const proveedores = window.ensureArray(data, 'proveedores');
+
+        const selectEntrada = document.getElementById('proveedor-entrada');
+        const selectNuevo = document.getElementById('nuevo-proveedor');
+
+        if (selectEntrada) {
+            selectEntrada.innerHTML = '<option value="">Seleccionar proveedor...</option>' +
+                '<option value="__nuevo__">➕ Agregar Nuevo Proveedor</option>';
+            proveedores.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.nombre;
+                opt.textContent = p.nombre;
+                selectEntrada.appendChild(opt);
+            });
+        }
+
+        if (selectNuevo) {
+            selectNuevo.innerHTML = '<option value="">Seleccionar proveedor...</option>' +
+                '<option value="__nuevo__">➕ Agregar Nuevo Proveedor</option>';
+            proveedores.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.nombre;
+                opt.textContent = p.nombre;
+                selectNuevo.appendChild(opt);
+            });
+        }
+    } catch (error) {
+        console.error('Error al cargar proveedores:', error);
+    }
+}
+
+function mostrarModalNuevoProveedor() {
+    document.getElementById('nuevo-proveedor-nombre').value = '';
+    document.getElementById('nuevo-proveedor-contacto').value = '';
+    document.getElementById('nuevo-proveedor-telefono').value = '';
+    document.getElementById('nuevo-proveedor-modal').classList.add('active');
+}
+
+function cerrarModalNuevoProveedor() {
+    document.getElementById('nuevo-proveedor-modal').classList.remove('active');
+}
+
+async function guardarNuevoProveedor() {
+    const nombre = document.getElementById('nuevo-proveedor-nombre').value.trim();
+    const contacto = document.getElementById('nuevo-proveedor-contacto').value.trim();
+    const telefono = document.getElementById('nuevo-proveedor-telefono').value.trim();
+
+    if (!nombre) {
+        showToast('Campo Requerido', 'Ingresa el nombre del proveedor', 'warning');
+        return;
+    }
+
+    try {
+        const response = await apiFetch('/api/proveedores', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre, contacto, telefono })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showToast('Proveedor Guardado', `Proveedor "${nombre}" registrado exitosamente`, 'success');
+            cerrarModalNuevoProveedor();
+            await loadProveedores();
+
+            const selectEntrada = document.getElementById('proveedor-entrada');
+            const selectNuevo = document.getElementById('nuevo-proveedor');
+            if (selectEntrada) selectEntrada.value = nombre;
+            if (selectNuevo) selectNuevo.value = nombre;
+        } else {
+            showToast('Error', data.error || 'No se pudo guardar el proveedor', 'error');
+        }
+    } catch (error) {
+        console.error('Error al guardar proveedor:', error);
+        showToast('Error de Conexión', 'No se pudo guardar el proveedor', 'error');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
     renderGlobalHeader('entradas');
     loadProductos();
     loadEntradasRecientes();
+    loadProveedores();
 
     document.getElementById('buscar-producto-entrada').addEventListener('input', buscarProducto);
+
+    const selectEntrada = document.getElementById('proveedor-entrada');
+    if (selectEntrada) {
+        selectEntrada.addEventListener('change', function() {
+            if (this.value === '__nuevo__') {
+                mostrarModalNuevoProveedor();
+                this.value = '';
+            }
+        });
+    }
+
+    const selectNuevo = document.getElementById('nuevo-proveedor');
+    if (selectNuevo) {
+        selectNuevo.addEventListener('change', function() {
+            if (this.value === '__nuevo__') {
+                mostrarModalNuevoProveedor();
+                this.value = '';
+            }
+        });
+    }
 });

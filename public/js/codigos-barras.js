@@ -68,9 +68,9 @@ function generarCodigosBarras() {
     allCodes.forEach(item => {
         const previewCard = document.createElement('div');
         previewCard.className = 'barcode-card';
-        const svgId = `preview-barcode-${item.code}-${Math.random().toString(36).slice(2, 8)}`;
+        const canvasId = `preview-barcode-${item.code}-${Math.random().toString(36).slice(2, 8)}`;
         previewCard.innerHTML = `
-            <svg id="${svgId}"></svg>
+            <canvas id="${canvasId}"></canvas>
             <div class="barcode-product-name">${item.nombre}</div>
             <div class="barcode-product-code">${item.code}</div>
             <div class="barcode-product-price">${formatCurrency(item.precio)}</div>
@@ -79,9 +79,9 @@ function generarCodigosBarras() {
 
         const printCard = document.createElement('div');
         printCard.className = 'barcode-card';
-        const printSvgId = `print-barcode-${item.code}-${Math.random().toString(36).slice(2, 8)}`;
+        const printCanvasId = `print-barcode-${item.code}-${Math.random().toString(36).slice(2, 8)}`;
         printCard.innerHTML = `
-            <svg id="${printSvgId}"></svg>
+            <canvas id="${printCanvasId}"></canvas>
             <div class="barcode-product-name">${item.nombre}</div>
             <div class="barcode-product-code">${item.code}</div>
             <div class="barcode-product-price">${formatCurrency(item.precio)}</div>
@@ -89,7 +89,7 @@ function generarCodigosBarras() {
         printGrid.appendChild(printCard);
 
         try {
-            JsBarcode(`#${svgId}`, item.code, {
+            JsBarcode(`#${canvasId}`, item.code, {
                 format: 'CODE128',
                 width: 1.5,
                 height: 40,
@@ -98,7 +98,7 @@ function generarCodigosBarras() {
                 margin: 5
             });
 
-            JsBarcode(`#${printSvgId}`, item.code, {
+            JsBarcode(`#${printCanvasId}`, item.code, {
                 format: 'CODE128',
                 width: 1.5,
                 height: 40,
@@ -122,12 +122,139 @@ function imprimirCodigosBarras() {
         return;
     }
 
-    printArea.classList.add('visible');
-    
-    setTimeout(() => {
-        window.print();
-        printArea.classList.remove('visible');
-    }, 300);
+    const cards = printArea.querySelectorAll('.barcode-card');
+    if (cards.length === 0) {
+        showToast('Sin contenido', 'Genera los códigos de barras antes de imprimir', 'warning');
+        return;
+    }
+
+    let itemsHTML = '';
+    cards.forEach(card => {
+        const canvas = card.querySelector('canvas');
+        const nombre = card.querySelector('.barcode-product-name')?.textContent || '';
+        const codigo = card.querySelector('.barcode-product-code')?.textContent || '';
+        const precio = card.querySelector('.barcode-product-price')?.textContent || '';
+        
+        if (canvas) {
+            const imgData = canvas.toDataURL('image/png');
+            itemsHTML += `
+                <div class="print-barcode-item">
+                    <img src="${imgData}" alt="${codigo}" />
+                    <div class="print-barcode-name">${nombre}</div>
+                    <div class="print-barcode-code">${codigo}</div>
+                    <div class="print-barcode-price">${precio}</div>
+                </div>
+            `;
+        }
+    });
+
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (!printWindow) {
+        alert('No se pudo abrir la ventana de impresión. Verifica que no esté bloqueada por el navegador.');
+        return;
+    }
+
+    printWindow.document.write(`<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Códigos de Barras - Tienda CVS</title>
+    <style>
+        @page {
+            size: 80mm auto;
+            margin: 5mm;
+        }
+        @media print {
+            body {
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            margin: 10px;
+            padding: 10px;
+        }
+        .print-header {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 12pt;
+        }
+        .print-header h1 {
+            margin: 0;
+            font-size: 14pt;
+        }
+        .print-barcode-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+        .print-barcode-item {
+            width: 180px;
+            text-align: center;
+            border: 1px solid #ccc;
+            padding: 8px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+        .print-barcode-item img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        .print-barcode-name {
+            font-weight: bold;
+            font-size: 10pt;
+            margin-top: 4px;
+            word-wrap: break-word;
+        }
+        .print-barcode-code {
+            font-family: monospace;
+            font-size: 9pt;
+            color: #555;
+            margin-top: 2px;
+        }
+        .print-barcode-price {
+            font-weight: bold;
+            font-size: 10pt;
+            margin-top: 2px;
+            color: #000;
+        }
+        .print-actions {
+            text-align: center;
+            margin-top: 20px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-top: 1px solid #ddd;
+        }
+        .print-actions button {
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="print-header">
+        <h1>CENTRO DE VIDA SANA</h1>
+        <p>Códigos de Barras - ${new Date().toLocaleDateString('es-MX')}</p>
+    </div>
+    <div class="print-barcode-grid">
+        ${itemsHTML}
+    </div>
+    <div class="print-actions no-print">
+        <button onclick="window.print(); window.close();">🖨️ Imprimir</button>
+        <button onclick="window.close();">Cerrar</button>
+    </div>
+</body>
+</html>`);
+    printWindow.document.close();
+    printWindow.focus();
 }
 
 document.addEventListener('DOMContentLoaded', () => {

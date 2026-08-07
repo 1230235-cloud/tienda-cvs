@@ -37,8 +37,9 @@
                 <div class="filters-row">
                     <div class="filter-group">
                         <label>Proveedor</label>
-                        <input type="text" id="orden-proveedor" list="proveedores-list" class="input-control" placeholder="Selecciona o escribe un proveedor...">
-                        <datalist id="proveedores-list"></datalist>
+                        <select id="orden-proveedor" class="select-input">
+                            <option value="">Cargando proveedores...</option>
+                        </select>
                     </div>
                     <div class="filter-group">
                         <label>Solicita</label>
@@ -119,6 +120,34 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Modal Nuevo Proveedor -->
+    <div id="nuevo-proveedor-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>➕ Agregar Nuevo Proveedor</h2>
+                <button class="btn-close" onclick="cerrarModalNuevoProveedor()">×</button>
+            </div>
+            <div style="padding: 20px;">
+                <div class="form-group">
+                    <label>Nombre del Proveedor *</label>
+                    <input type="text" id="nuevo-proveedor-nombre" class="input-control" placeholder="Ej: Distribuidora La Esperanza">
+                </div>
+                <div class="form-group">
+                    <label>Contacto</label>
+                    <input type="text" id="nuevo-proveedor-contacto" class="input-control" placeholder="Ej: Juan Pérez">
+                </div>
+                <div class="form-group">
+                    <label>Teléfono</label>
+                    <input type="text" id="nuevo-proveedor-telefono" class="input-control" placeholder="Ej: 961-123-4567">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="cerrarModalNuevoProveedor()">Cancelar</button>
+                <button class="btn btn-primary" onclick="guardarNuevoProveedor()">💾 Guardar Proveedor</button>
+            </div>
+        </div>
     </div>
 
     <script src="js/main.js"></script>
