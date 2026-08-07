@@ -120,9 +120,9 @@ expressApp.get('/api/productos-por-proveedor', async (req, res) => {
 expressApp.use(express.static(publicPath));
 expressApp.use(express.static(__dirname));
 
-// Ruta principal
+// Ruta principal - servir el login del sistema
 expressApp.get('/', (req, res) => {
-    res.sendFile(path.join(publicPath, 'index.html'));
+    res.sendFile(path.join(publicPath, 'login.html'));
 });
 
 // Health check para descubrimiento
