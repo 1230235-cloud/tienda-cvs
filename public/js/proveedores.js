@@ -1,10 +1,8 @@
 // Módulo de Gestión de Proveedores
 
-const API_BASE = 'http://localhost:3000';
-
 async function loadProveedores() {
     try {
-        const res = await fetch(`${API_BASE}/api/proveedores`);
+        const res = await apiFetch('/api/proveedores');
         const rawData = await res.json();
         console.log("DATOS RECIBIDOS DEL BACKEND:", rawData);
 
@@ -69,7 +67,7 @@ function cerrarModalProveedor() {
 
 async function editarProveedor(id) {
     try {
-        const response = await apiFetch(`${API_BASE}/api/proveedores/${id}`);
+        const response = await apiFetch(`/api/proveedores/${id}`);
         if (!response.ok) {
             showToast('Error', 'No se pudo cargar el proveedor', 'error');
             return;
@@ -105,7 +103,7 @@ async function guardarProveedor(event) {
 
     try {
         const method = id ? 'PUT' : 'POST';
-        const url = id ? `${API_BASE}/api/proveedores/${id}` : `${API_BASE}/api/proveedores`;
+        const url = id ? `/api/proveedores/${id}` : `/api/proveedores`;
 
         const res = await apiFetch(url, {
             method,
@@ -136,7 +134,7 @@ async function guardarProveedor(event) {
 
 async function eliminarProveedor(id) {
     try {
-        const response = await apiFetch(`${API_BASE}/api/proveedores/${id}`);
+        const response = await apiFetch(`/api/proveedores/${id}`);
         if (!response.ok) {
             showToast('Error', 'No se pudo cargar el proveedor', 'error');
             return;
@@ -148,7 +146,7 @@ async function eliminarProveedor(id) {
             return;
         }
 
-        const delRes = await apiFetch(`${API_BASE}/api/proveedores/${id}`, { method: 'DELETE' });
+        const delRes = await apiFetch(`/api/proveedores/${id}`, { method: 'DELETE' });
         const delData = await delRes.json();
 
         if (delRes.ok) {

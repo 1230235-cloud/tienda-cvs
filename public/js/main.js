@@ -11,7 +11,7 @@ window.API_BASE_URL = (() => {
     if (window.location.protocol.startsWith('http')) {
       return window.location.origin;
     }
-    return 'http://localhost:3000';
+    return 'http://100.98.240.35:3000';
   })();
 
 async function apiFetch(url, options = {}) {
