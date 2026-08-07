@@ -116,8 +116,9 @@ expressApp.get('/api/productos-por-proveedor', async (req, res) => {
     }
 });
 
-// Servir archivos estáticos
+// Servir archivos estáticos del frontend
 expressApp.use(express.static(publicPath));
+expressApp.use(express.static(__dirname));
 
 // Ruta principal
 expressApp.get('/', (req, res) => {
