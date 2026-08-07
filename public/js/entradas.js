@@ -468,6 +468,21 @@ async function guardarNuevoProveedor() {
     }
 }
 
+function filtrarProductosPorProveedor(proveedorSeleccionado, listaProductos) {
+    if (!proveedorSeleccionado || proveedorSeleccionado === '' || proveedorSeleccionado === 'todos') {
+        return listaProductos;
+    }
+
+    return listaProductos.filter(producto => {
+        const provProductoID = String(producto.id_proveedor || producto.proveedor_id || '').trim();
+        const provProductoNombre = String(producto.proveedor || producto.nombre_proveedor || '').trim().toLowerCase();
+
+        const busqueda = String(proveedorSeleccionado).trim().toLowerCase();
+
+        return provProductoID === busqueda || provProductoNombre === busqueda || provProductoNombre.includes(busqueda);
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
     renderGlobalHeader('entradas');
@@ -487,11 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             const proveedorSeleccionado = this.value.trim();
-            if (!proveedorSeleccionado) {
-                renderProductosGrid(productosCatalogo);
-                return;
-            }
-            const filtrados = productosCatalogo.filter(p => (p.proveedor || '').trim() === proveedorSeleccionado);
+            const filtrados = filtrarProductosPorProveedor(proveedorSeleccionado, productosCatalogo);
             renderProductosGrid(filtrados);
         });
     }

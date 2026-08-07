@@ -35,21 +35,37 @@ async function loadProveedores() {
     }
 }
 
+function filtrarProductosPorProveedor(proveedorSeleccionado, listaProductos) {
+    if (!proveedorSeleccionado || proveedorSeleccionado === '' || proveedorSeleccionado === 'todos') {
+        return listaProductos;
+    }
+
+    return listaProductos.filter(producto => {
+        const provProductoID = String(producto.id_proveedor || producto.proveedor_id || '').trim();
+        const provProductoNombre = String(producto.proveedor || producto.nombre_proveedor || '').trim().toLowerCase();
+
+        const busqueda = String(proveedorSeleccionado).trim().toLowerCase();
+
+        return provProductoID === busqueda || provProductoNombre === busqueda || provProductoNombre.includes(busqueda);
+    });
+}
+
 async function loadProductosByProveedor(proveedor) {
     const select = document.getElementById('orden-producto');
     if (!select) return;
 
-    select.innerHTML = '<option value="">Seleccionar producto...</option>';
-
-    if (!proveedor) return;
+    select.innerHTML = '<option value="">-- Ver todos los productos --</option>';
 
     try {
-        const res = await apiFetch(`/api/inventario?proveedor=${encodeURIComponent(proveedor)}`);
+        const res = await apiFetch('/api/inventario');
         if (!res.ok) return;
         const data = await res.json();
-        const productos = window.ensureArray(data, 'productos');
+        const todosProductos = window.ensureArray(data, 'productos');
 
-        productos.forEach(p => {
+        const proveedorSeleccionado = proveedor || '';
+        const filtrados = filtrarProductosPorProveedor(proveedorSeleccionado, todosProductos);
+
+        filtrados.forEach(p => {
             const stockTotal = (parseInt(p.stock_bodega) || 0) + (parseInt(p.stock_tienda) || 0);
             const sugerido = Math.max(1, (parseInt(p.stock_minimo) || 5) - stockTotal);
             const opt = document.createElement('option');
