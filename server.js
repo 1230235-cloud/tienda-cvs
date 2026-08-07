@@ -32,7 +32,6 @@ const cortesRoutes = require('./routes/cortes');
 const dashboardRoutes = require('./routes/dashboard');
 const authRoutes = require('./routes/auth');
 const ordenesCompraRoutes = require('./routes/ordenes_compra');
-const proveedoresRoutes = require('./routes/proveedores');
 
 // Usar rutas
 expressApp.use('/api/inventario', inventarioRoutes);
@@ -42,7 +41,48 @@ expressApp.use('/api/cortes', cortesRoutes);
 expressApp.use('/api/dashboard', dashboardRoutes);
 expressApp.use('/api/auth', authRoutes);
 expressApp.use('/api/ordenes', ordenesCompraRoutes);
-expressApp.use('/api/proveedores', proveedoresRoutes);
+
+// =====================================
+// RUTAS PROVEEDORES - IMPLEMENTACIÓN REAL SQLITE
+// =====================================
+
+// GET: Obtener todos los proveedores
+expressApp.get('/api/proveedores', (req, res) => {
+    db.all('SELECT * FROM proveedores ORDER BY id DESC', [], (err, rows) => {
+        if (err) {
+            console.error("Error SELECT proveedores:", err);
+            return res.status(500).json({ error: err.message });
+        }
+        console.log("PROVEEDORES DESDE SQLITE:", rows);
+        res.json(rows || []);
+    });
+});
+
+// POST: Guardar nuevo proveedor
+expressApp.post('/api/proveedores', (req, res) => {
+    const { nombre, contacto, telefono, observaciones } = req.body;
+    if (!nombre) {
+        return res.status(400).json({ error: "El nombre es obligatorio" });
+    }
+    const sql = 'INSERT INTO proveedores (nombre, contacto, telefono, observaciones) VALUES (?, ?, ?, ?)';
+    db.run(sql, [nombre, contacto, telefono, observaciones], function(err) {
+        if (err) {
+            console.error("Error INSERT proveedor:", err);
+            return res.status(500).json({ error: err.message });
+        }
+        console.log("PROVEEDOR INSERTADO CON ID:", this.lastID);
+        res.status(201).json({ id: this.lastID, nombre, contacto, telefono, observaciones });
+    });
+});
+
+// DELETE: Eliminar proveedor
+expressApp.delete('/api/proveedores/:id', (req, res) => {
+    const { id } = req.params;
+    db.run('DELETE FROM proveedores WHERE id = ?', [id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: "Proveedor eliminado" });
+    });
+});
 
 // Servir archivos estáticos
 expressApp.use(express.static(publicPath));
