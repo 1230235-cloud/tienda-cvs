@@ -76,7 +76,8 @@ async function loadAlertasStock() {
             const esAgotado = stock <= 0;
             const badgeClass = esAgotado ? 'badge-danger' : 'badge-warning';
             const estadoTexto = esAgotado ? '🚫 Agotado' : '⚠️ Bajo Stock';
-            
+
+            const row = document.createElement('tr');
             row.innerHTML = `
                 <td><code>${producto.codigo}</code></td>
                 <td><strong>${producto.nombre}</strong></td>
