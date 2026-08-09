@@ -60,7 +60,7 @@ router.get('/verify', async (req, res) => {
             return res.status(401).json({ error: 'No autorizado' });
         }
 
-        const token = authHeader.replace('Bearer ', '');
+        const token = authHeader.replace(/^bearer\s+/i, '');
         const decoded = Buffer.from(token, 'base64').toString('ascii');
         const [userId] = decoded.split(':');
 

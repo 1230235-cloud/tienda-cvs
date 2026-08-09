@@ -7,7 +7,7 @@ async function verificarAdmin(req, res, next) {
     }
 
     try {
-        const token = authHeader.replace('Bearer ', '');
+        const token = authHeader.replace(/^bearer\s+/i, '');
         const decoded = Buffer.from(token, 'base64').toString('ascii');
         const [userId] = decoded.split(':');
 

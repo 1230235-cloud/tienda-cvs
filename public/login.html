@@ -232,9 +232,21 @@
             const rol = document.getElementById('reg-rol').value;
 
             try {
+                const token = localStorage.getItem('auth_token') || localStorage.getItem('authToken');
+                if (!token) {
+                    alertDiv.textContent = 'Sesión expirada. Por favor vuelve a iniciar sesión.';
+                    alertDiv.style.display = 'block';
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = '<span>Registrar Usuario</span> ✨';
+                    return;
+                }
+
                 const response = await apiFetch(`/api/auth/register`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({ username, password, nombre, rol })
                 });
 
