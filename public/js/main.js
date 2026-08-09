@@ -3,15 +3,8 @@
 // =====================================
 
 window.API_BASE_URL = (() => {
-    const storedIp = localStorage.getItem('server_ip');
-    const storedMode = localStorage.getItem('server_mode');
-    if (storedMode === 'client' && storedIp) {
-      return `http://${storedIp}:3000`;
-    }
-    if (window.location.protocol.startsWith('http')) {
-      return window.location.origin;
-    }
-    return 'http://100.98.240.35:3000';
+    const SERVER_HOST = window.location.hostname || '100.98.240.35';
+    return `http://${SERVER_HOST}:3000`;
   })();
 
 async function apiFetch(url, options = {}) {
