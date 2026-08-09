@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const os = require('os');
+const bcrypt = require('bcryptjs');
 const db = require('./database');
 const bonjour = require('bonjour')();
 const { queryAll, queryRun } = require('./database');
@@ -107,6 +108,38 @@ expressApp.delete('/api/proveedores/:id', async (req, res) => {
 });
 
 // =====================================
+// GESTIÓN DE USUARIOS - IMPLEMENTACIÓN DIRECTA
+// =====================================
+
+// POST: Crear usuario con manejo de errores robusto
+expressApp.post('/api/usuarios', async (req, res) => {
+    try {
+        const { nombre, usuario, password, rol } = req.body;
+
+        if (!usuario || !password) {
+            return res.status(400).json({ error: 'Usuario y contraseña son requeridos' });
+        }
+
+        const existe = await queryAll('SELECT id FROM usuarios WHERE username = ?', [usuario]);
+        if (existe && existe.length > 0) {
+            return res.status(400).json({ error: 'El nombre de usuario ya está registrado' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        await queryRun(
+            'INSERT INTO usuarios (nombre, username, password, rol, activo) VALUES (?, ?, ?, ?, 1)',
+            [nombre || usuario, usuario, hashedPassword, rol || 'Usuario']
+        );
+
+        return res.status(201).json({ success: true, message: 'Usuario creado exitosamente' });
+    } catch (err) {
+        console.error("Error al crear usuario:", err);
+        return res.status(500).json({ error: 'Error interno del servidor al crear el usuario: ' + err.message });
+    }
+});
+
+// =====================================
 // PRODUCTOS POR PROVEEDOR
 // =====================================
 
@@ -148,6 +181,20 @@ expressApp.get('/', (req, res) => {
 // Health check para descubrimiento
 expressApp.get('/api/health', (req, res) => {
     res.json({ status: 'ok', name: 'tienda-cvs-server', port: PORT });
+});
+
+// Middleware global de errores (debe ir después de todas las rutas)
+expressApp.use((err, req, res, next) => {
+    console.error("Uncaught Error:", err);
+    res.status(500).json({ error: 'Error inesperado en el servidor' });
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('Excepción no capturada:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Promesa rechazada no capturada:', reason);
 });
 
 // Iniciar servidor

@@ -80,18 +80,14 @@ router.get('/verify', async (req, res) => {
 router.post('/register', verificarAdmin, async (req, res) => {
     try {
         const { username, password, nombre, rol } = req.body;
-        
-        console.log('[REGISTER] Intento de registro:', { username, nombre, rol, hasPassword: !!password });
-        
+
         if (!username || !password || !nombre) {
             return res.status(400).json({ error: 'Usuario, contraseña y nombre son requeridos' });
         }
 
         const existingUser = await runGet('SELECT id FROM usuarios WHERE LOWER(username) = LOWER(?)', [username]);
-        console.log('[REGISTER] existingUser result:', existingUser);
-        
+
         if (existingUser) {
-            console.log('[REGISTER] El usuario ya existe:', existingUser.username);
             return res.status(400).json({ error: 'El usuario ya existe' });
         }
 
@@ -108,7 +104,7 @@ router.post('/register', verificarAdmin, async (req, res) => {
         });
     } catch (error) {
         console.error('[REGISTER] Error:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Error interno al crear usuario: ' + error.message });
     }
 });
 
