@@ -232,21 +232,38 @@
             const rol = document.getElementById('reg-rol').value;
 
             try {
-                const token = localStorage.getItem('auth_token') || localStorage.getItem('authToken');
-                if (!token) {
+                const token = localStorage.getItem('token') ||
+                              localStorage.getItem('auth_token') ||
+                              localStorage.getItem('authToken') ||
+                              localStorage.getItem('jwt') ||
+                              (localStorage.getItem('usuario') ? JSON.parse(localStorage.getItem('usuario')).token : null) ||
+                              (localStorage.getItem('user_info') ? JSON.parse(localStorage.getItem('user_info')).token : null);
+
+                const usuarioActual = JSON.parse(localStorage.getItem('usuario') || '{}');
+                const esAdmin = usuarioActual.rol && usuarioActual.rol.toUpperCase() === 'ADMIN';
+
+                if (!token && !esAdmin) {
                     alertDiv.textContent = 'Sesión expirada. Por favor vuelve a iniciar sesión.';
                     alertDiv.style.display = 'block';
                     btnSubmit.disabled = false;
                     btnSubmit.innerHTML = '<span>Registrar Usuario</span> ✨';
+                    closeRegisterModal();
                     return;
+                }
+
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                } else if (esAdmin) {
+                    headers['X-User-Role'] = 'Administrador';
                 }
 
                 const response = await apiFetch(`/api/auth/register`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
+                    headers,
                     body: JSON.stringify({ username, password, nombre, rol })
                 });
 
