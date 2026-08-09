@@ -9,7 +9,12 @@ window.API_BASE_URL = (() => {
 
 async function apiFetch(url, options = {}) {
   const fullUrl = url.startsWith('http') ? url : `${window.API_BASE_URL}${url}`;
-  const token = localStorage.getItem('auth_token');
+  const token = localStorage.getItem('token') ||
+                localStorage.getItem('auth_token') ||
+                localStorage.getItem('authToken') ||
+                localStorage.getItem('jwt') ||
+                (localStorage.getItem('usuario') ? JSON.parse(localStorage.getItem('usuario')).token : null) ||
+                (localStorage.getItem('user_info') ? JSON.parse(localStorage.getItem('user_info')).token : null);
 
   const headers = {
     'Content-Type': 'application/json',

@@ -317,21 +317,23 @@
 
                 const data = await response.json();
 
-if (response.ok) {
-                     const userData = data.user || {};
-                     localStorage.setItem('auth_token', data.token);
-                     localStorage.setItem('user_info', JSON.stringify(userData));
-                     localStorage.setItem('usuario', JSON.stringify(userData));
+ if (response.ok) {
+                      const userData = data.user || {};
+                      localStorage.setItem('token', data.token);
+                      localStorage.setItem('auth_token', data.token);
+                      localStorage.setItem('authToken', data.token);
+                      localStorage.setItem('user_info', JSON.stringify(userData));
+                      localStorage.setItem('usuario', JSON.stringify(userData));
 
-                     if (userData.rol && userData.rol.toUpperCase() === 'CAJERO') {
-                         window.location.href = 'ventas.html';
-                     } else {
-                         window.location.href = 'dashboard.html';
-                     }
-                 } else {
-                    alertDiv.textContent = data.error || 'Error al iniciar sesión';
-                    alertDiv.style.display = 'block';
-                }
+                      if (userData.rol && userData.rol.toUpperCase() === 'CAJERO') {
+                          window.location.href = 'ventas.html';
+                      } else {
+                          window.location.href = 'dashboard.html';
+                      }
+                  } else {
+                     alertDiv.textContent = data.error || 'Error al iniciar sesión';
+                     alertDiv.style.display = 'block';
+                 }
             } catch (err) {
                 alertDiv.textContent = 'No se pudo conectar con el servidor';
                 alertDiv.style.display = 'block';

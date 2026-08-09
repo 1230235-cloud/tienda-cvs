@@ -349,9 +349,9 @@ async function initializeDatabase() {
 
     const adminPass = bcrypt.hashSync('admin123', 10);
     const cajeroPass = bcrypt.hashSync('123456', 10);
-    await runRun('INSERT OR IGNORE INTO usuarios (username, password, nombre, rol) VALUES (?, ?, ?, ?)', ['admin', adminPass, 'Administrador Tienda CVS', 'ADMIN']);
-    await runRun('INSERT OR IGNORE INTO usuarios (username, password, nombre, rol) VALUES (?, ?, ?, ?)', ['cajero', cajeroPass, 'Cajero Tienda CVS', 'CAJERO']);
-    console.log('Usuarios iniciales creados (admin/admin123, cajero/123456)');
+    await runRun('INSERT OR REPLACE INTO usuarios (id, username, password, nombre, rol) VALUES (1, ?, ?, ?, ?)', ['admin', adminPass, 'Administrador Tienda CVS', 'ADMIN']);
+    await runRun('INSERT OR REPLACE INTO usuarios (id, username, password, nombre, rol) VALUES (2, ?, ?, ?, ?)', ['cajero', cajeroPass, 'Cajero Tienda CVS', 'CAJERO']);
+    console.log('Usuarios iniciales asegurados (admin/admin123, cajero/123456)');
 
     const productosCount = await runGet('SELECT COUNT(*) as count FROM productos');
     if (productosCount && productosCount.count === 0) {
