@@ -58,6 +58,20 @@ expressApp.get('/api/proveedores', async (req, res) => {
     }
 });
 
+// GET: Obtener proveedor por ID (para editar)
+expressApp.get('/api/proveedores/:id', async (req, res) => {
+    try {
+        const rows = await queryAll('SELECT * FROM proveedores WHERE id = ?', [req.params.id]);
+        if (!rows || rows.length === 0) {
+            return res.status(404).json({ error: 'Proveedor no encontrado' });
+        }
+        res.json(rows[0]);
+    } catch (err) {
+        console.error("Error en GET /api/proveedores/:id:", err.message);
+        res.status(500).json({ error: 'Error al obtener proveedor' });
+    }
+});
+
 // POST: Guardar nuevo proveedor
 expressApp.post('/api/proveedores', async (req, res) => {
     try {
@@ -82,7 +96,13 @@ expressApp.delete('/api/proveedores/:id', async (req, res) => {
         await queryRun('DELETE FROM proveedores WHERE id = ?', [req.params.id]);
         res.json({ message: "Proveedor eliminado" });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        try {
+            await queryRun('UPDATE proveedores SET activo = 0 WHERE id = ?', [req.params.id]);
+            res.json({ message: "Proveedor desactivado (tenía productos asociados)" });
+        } catch (innerErr) {
+            console.error("Error en DELETE /api/proveedores:", innerErr.message);
+            res.status(500).json({ error: 'No se pudo eliminar el proveedor' });
+        }
     }
 });
 
