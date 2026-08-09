@@ -27,23 +27,24 @@ router.get('/', async (req, res) => {
     }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:parametro', async (req, res) => {
     try {
-        const venta = await runGet('SELECT * FROM ventas WHERE id = ?', [req.params.id]);
-        if (!venta) {
-            return res.status(404).json({ error: 'Venta no encontrada' });
+        const { parametro } = req.params;
+        const venta = await runQuery('SELECT * FROM ventas WHERE folio = ? OR id = ? OR ticket_num = ?', [parametro, parametro, parametro]);
+        if (!venta || venta.length === 0) {
+            return res.status(404).json({ error: 'Venta no encontrada con el folio o ID ingresado' });
         }
-        
+
         const detalles = await runQuery(`
             SELECT vd.*, p.nombre, p.codigo 
             FROM venta_detalles vd
             JOIN productos p ON vd.producto_id = p.id
             WHERE vd.venta_id = ?
-        `, [req.params.id]);
-        
-        res.json({ ...venta, detalles });
+        `, [venta[0].id]);
+
+        res.json({ ...venta[0], detalles });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Error al consultar la venta' });
     }
 });
 

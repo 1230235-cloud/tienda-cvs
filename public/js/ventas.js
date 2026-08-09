@@ -938,13 +938,7 @@ async function buscarVentaDevolucion() {
     }
 
     try {
-        let response = await apiFetch(`/api/ventas/${encodeURIComponent(folioInput)}`);
-        if (!response.ok) {
-            const numericId = parseInt(folioInput);
-            if (!isNaN(numericId)) {
-                response = await apiFetch(`/api/ventas/${numericId}`);
-            }
-        }
+        const response = await apiFetch(`/api/ventas/${encodeURIComponent(folioInput)}`);
 
         if (!response.ok) {
             const error = await response.json();
