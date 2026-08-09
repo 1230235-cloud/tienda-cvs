@@ -3,7 +3,7 @@
 // =====================================
 
 window.API_BASE_URL = (() => {
-    const SERVER_HOST = window.location.hostname || '100.98.240.35';
+    const SERVER_HOST = window.location.hostname || '100.91.160.121';
     return `http://${SERVER_HOST}:3000`;
   })();
 
