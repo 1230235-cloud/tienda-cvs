@@ -9,7 +9,6 @@ router.get('/proveedores', async (req, res) => {
             SELECT DISTINCT proveedor FROM productos 
             WHERE proveedor IS NOT NULL 
             AND proveedor != '' 
-            AND (stock_bodega + stock_tienda) <= stock_minimo 
             AND activo = 1
             ORDER BY proveedor
         `);
@@ -27,7 +26,6 @@ router.get('/productos-bajo-stock', async (req, res) => {
                    (stock_bodega + stock_tienda) as stock_total
             FROM productos 
             WHERE activo = 1 
-            AND (stock_bodega + stock_tienda) <= stock_minimo
             ORDER BY proveedor, stock_total ASC
         `);
         res.json({ productos });
@@ -49,7 +47,6 @@ router.get('/productos-bajo-stock-proveedor', async (req, res) => {
             FROM productos 
             WHERE activo = 1 
             AND proveedor = ?
-            AND (stock_bodega + stock_tienda) <= stock_minimo
             ORDER BY stock_total ASC
         `, [proveedor]);
         res.json({ productos });

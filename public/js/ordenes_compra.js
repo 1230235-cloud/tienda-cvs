@@ -106,13 +106,19 @@ function agregarProductoOrden() {
 
     const subtotal = cantidad * costo;
 
-    ordenDetalles.push({
-        producto_id: parseInt(productoId),
-        descripcion: codigo ? `${codigo} - ${descripcion}` : descripcion,
-        cantidad,
-        costo,
-        subtotal
-    });
+    const existente = ordenDetalles.find(d => d.producto_id === parseInt(productoId));
+    if (existente) {
+        existente.cantidad += cantidad;
+        existente.subtotal = existente.cantidad * existente.costo;
+    } else {
+        ordenDetalles.push({
+            producto_id: parseInt(productoId),
+            descripcion: codigo ? `${codigo} - ${descripcion}` : descripcion,
+            cantidad,
+            costo,
+            subtotal
+        });
+    }
 
     renderOrdenDetalles();
     limpiarCamposProducto();
@@ -128,42 +134,7 @@ function limpiarCamposProducto() {
     if (productoSelect) productoSelect.value = '';
 }
 
-async function autoCargarProductosBajoStock(proveedor) {
-    try {
-        const res = await apiFetch(`/api/ordenes/productos-bajo-stock-proveedor?proveedor=${encodeURIComponent(proveedor)}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        const productos = window.ensureArray(data, 'productos');
-
-        if (productos.length === 0) return;
-
-        if (!confirm(`Se encontraron ${productos.length} productos bajos de stock para ${proveedor}. ¿Deseas agregarlos automáticamente a la orden?`)) {
-            return;
-        }
-
-        for (const p of productos) {
-            const stockTotal = (parseInt(p.stock_bodega) || 0) + (parseInt(p.stock_tienda) || 0);
-            const stockMinimo = parseInt(p.stock_minimo) || 5;
-            const cantidad = Math.max(1, stockMinimo - stockTotal);
-            const costo = parseFloat(p.precio_publico) || parseFloat(p.precio) || 0;
-
-            ordenDetalles.push({
-                producto_id: p.id,
-                descripcion: `${p.codigo || ''} - ${p.nombre || ''}`,
-                cantidad,
-                costo,
-                subtotal: cantidad * costo
-            });
-        }
-
-        renderOrdenDetalles();
-        showToast('Productos Agregados', `${productos.length} productos agregados automáticamente`, 'success');
-    } catch (error) {
-        console.error('Error al auto-cargar productos:', error);
-    }
-}
-
-function renderOrdenDetalles() {
+async function renderOrdenDetalles() {
     const tbody = document.getElementById('orden-detalles-body');
     if (!tbody) return;
 
@@ -176,7 +147,7 @@ function renderOrdenDetalles() {
     tbody.innerHTML = ordenDetalles.map((d, index) => `
         <tr>
             <td>${index + 1}</td>
-            <td>${d.cantidad}</td>
+            <td><input type="number" class="input-control" style="width: 80px;" value="${d.cantidad}" min="0" onchange="actualizarCantidadDetalle(${index}, this.value)"></td>
             <td>${d.descripcion}</td>
             <td class="text-right">$${d.costo.toFixed(2)}</td>
             <td class="text-right">$${d.subtotal.toFixed(2)}</td>
@@ -193,6 +164,18 @@ function renderOrdenDetalles() {
 
 function eliminarDetalleOrden(index) {
     ordenDetalles.splice(index, 1);
+    renderOrdenDetalles();
+}
+
+function actualizarCantidadDetalle(index, nuevaCantidad) {
+    const cantidad = parseInt(nuevaCantidad) || 0;
+    if (cantidad < 0) {
+        showToast('Error', 'La cantidad no puede ser negativa', 'error');
+        renderOrdenDetalles();
+        return;
+    }
+    ordenDetalles[index].cantidad = cantidad;
+    ordenDetalles[index].subtotal = cantidad * ordenDetalles[index].costo;
     renderOrdenDetalles();
 }
 
@@ -592,9 +575,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             loadProductosByProveedor(this.value);
-            if (this.value && this.value.length > 2) {
-                autoCargarProductosBajoStock(this.value);
-            }
         });
     }
 });
