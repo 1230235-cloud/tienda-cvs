@@ -26,7 +26,7 @@ async function loadProveedores() {
             '<option value="__nuevo__">➕ Agregar Nuevo Proveedor</option>';
         proveedores.forEach(p => {
             const opt = document.createElement('option');
-            opt.value = p.nombre;
+            opt.value = p.id;
             opt.textContent = p.nombre;
             select.appendChild(opt);
         });
@@ -50,17 +50,25 @@ function filtrarProductosPorProveedor(proveedorSeleccionado, listaProductos) {
     });
 }
 
-async function loadProductosByProveedor(proveedor) {
+async function loadProductosByProveedor(proveedorId) {
     const select = document.getElementById('orden-producto');
     if (!select) return;
 
-    select.innerHTML = '<option value="">-- Ver todos los productos --</option>';
+    select.innerHTML = '<option value="">-- Seleccionar producto --</option>';
+
+    if (!proveedorId || proveedorId === '' || proveedorId === '__nuevo__') {
+        return;
+    }
 
     try {
-        const res = await apiFetch(`/api/productos-por-proveedor?proveedor=${encodeURIComponent(proveedor)}`);
+        const res = await apiFetch(`/api/productos-por-proveedor?proveedor_id=${encodeURIComponent(proveedorId)}`);
         if (!res.ok) return;
         const data = await res.json();
         const productos = Array.isArray(data) ? data : (data.productos || []);
+
+        if (productos.length === 0) {
+            return;
+        }
 
         productos.forEach(p => {
             const stockTotal = (parseInt(p.stock_bodega) || 0) + (parseInt(p.stock_tienda) || 0);
@@ -572,6 +580,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (this.value === '__nuevo__') {
                 mostrarModalNuevoProveedor();
                 this.value = '';
+                loadProductosByProveedor('');
                 return;
             }
             loadProductosByProveedor(this.value);

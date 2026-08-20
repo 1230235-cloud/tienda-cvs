@@ -43,9 +43,15 @@ async function loadProductos() {
     }
 }
 
-async function cargarProductosPorProveedor(proveedor) {
+async function cargarProductosPorProveedor(proveedorId) {
     try {
-        const response = await apiFetch(`/api/productos-por-proveedor?proveedor=${encodeURIComponent(proveedor)}`);
+        if (!proveedorId || proveedorId === '' || proveedorId === '__nuevo__') {
+            productosCatalogo = [];
+            renderProductosGrid([]);
+            return;
+        }
+
+        const response = await apiFetch(`/api/productos-por-proveedor?proveedor_id=${encodeURIComponent(proveedorId)}`);
         if (!response.ok) return;
         const data = await response.json();
         const productos = Array.isArray(data) ? data : (data.productos || []);
@@ -418,7 +424,7 @@ async function loadProveedores() {
                 '<option value="__nuevo__">➕ Agregar Nuevo Proveedor</option>';
             proveedores.forEach(p => {
                 const opt = document.createElement('option');
-                opt.value = p.nombre;
+                opt.value = p.id;
                 opt.textContent = p.nombre;
                 selectEntrada.appendChild(opt);
             });
@@ -429,7 +435,7 @@ async function loadProveedores() {
                 '<option value="__nuevo__">➕ Agregar Nuevo Proveedor</option>';
             proveedores.forEach(p => {
                 const opt = document.createElement('option');
-                opt.value = p.nombre;
+                opt.value = p.id;
                 opt.textContent = p.nombre;
                 selectNuevo.appendChild(opt);
             });

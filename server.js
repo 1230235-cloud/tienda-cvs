@@ -146,23 +146,51 @@ expressApp.post('/api/usuarios', async (req, res) => {
 // GET: Obtener productos filtrados por proveedor (directo o por historial de entradas)
 expressApp.get('/api/productos-por-proveedor', async (req, res) => {
     try {
-        const { proveedor } = req.query;
-        if (!proveedor || proveedor === 'todos') {
+        const { proveedor, proveedor_id } = req.query;
+
+        if ((!proveedor || proveedor === 'todos') && (!proveedor_id)) {
             const todos = await queryAll('SELECT * FROM productos');
             return res.json(todos || []);
         }
 
-        const sql = `
-            SELECT DISTINCT p.*
-            FROM productos p
-            LEFT JOIN entrada_detalles de ON p.id = de.producto_id
-            LEFT JOIN entradas e ON de.entrada_id = e.id
-            WHERE LOWER(p.proveedor) = LOWER(?)
-               OR LOWER(e.proveedor) = LOWER(?)
-               OR LOWER(p.nombre_proveedor) = LOWER(?)
-        `;
-        const productos = await queryAll(sql, [proveedor, proveedor, proveedor]);
-        res.json(productos || []);
+        let productos = [];
+        let proveedorIdFinal = null;
+
+        if (proveedor_id) {
+            const proveedorRow = await queryAll('SELECT id, nombre FROM proveedores WHERE id = ?', [proveedor_id]);
+            const nombreProveedor = proveedorRow && proveedorRow.length > 0 ? proveedorRow[0].nombre : null;
+            proveedorIdFinal = proveedorRow && proveedorRow.length > 0 ? proveedorRow[0].id : null;
+
+            if (nombreProveedor) {
+                productos = await queryAll(`
+                    SELECT DISTINCT p.*
+                    FROM productos p
+                    WHERE LOWER(p.proveedor) = LOWER(?)
+                       OR LOWER(p.nombre_proveedor) = LOWER(?)
+                `, [nombreProveedor, nombreProveedor]);
+            }
+        } else if (proveedor) {
+            const proveedorRow = await queryAll('SELECT id FROM proveedores WHERE LOWER(nombre) = LOWER(?)', [proveedor]);
+            proveedorIdFinal = proveedorRow && proveedorRow.length > 0 ? proveedorRow[0].id : null;
+
+            const sql = `
+                SELECT DISTINCT p.*
+                FROM productos p
+                LEFT JOIN entrada_detalles de ON p.id = de.producto_id
+                LEFT JOIN entradas e ON de.entrada_id = e.id
+                WHERE LOWER(p.proveedor) = LOWER(?)
+                   OR LOWER(e.proveedor) = LOWER(?)
+                   OR LOWER(p.nombre_proveedor) = LOWER(?)
+            `;
+            productos = await queryAll(sql, [proveedor, proveedor, proveedor]);
+        }
+
+        const productosConProveedorId = productos.map(p => ({
+            ...p,
+            proveedor_id: proveedorIdFinal
+        }));
+
+        res.json(productosConProveedorId || []);
     } catch (err) {
         console.error("Error al obtener productos por proveedor:", err);
         res.status(500).json([]);
