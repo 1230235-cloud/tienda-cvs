@@ -1,6 +1,9 @@
 let productos = [];
 let carrito = [];
 let ventaActual = null;
+let _buscarVentaHandler = null;
+let _tipoClienteHandler = null;
+let _enterHandler = null;
 
 // Cargar productos
 async function loadProductos() {
@@ -849,38 +852,52 @@ document.addEventListener('DOMContentLoaded', () => {
     loadVentasRecientes();
     
     // Ocultar grid de productos inicialmente
-    document.getElementById('productos-grid').style.display = 'none';
-    document.getElementById('btn-regresar-busqueda').style.display = 'none';
+    const grid = document.getElementById('productos-grid');
+    const btnRegresar = document.getElementById('btn-regresar-busqueda');
+    if (grid) grid.style.display = 'none';
+    if (btnRegresar) btnRegresar.style.display = 'none';
     
-    document.getElementById('buscar-producto-venta').addEventListener('input', buscarProducto);
+    const buscarInput = document.getElementById('buscar-producto-venta');
+    if (buscarInput) {
+        if (_buscarVentaHandler) buscarInput.removeEventListener('input', _buscarVentaHandler);
+        _buscarVentaHandler = debounce(buscarProducto, 250);
+        buscarInput.addEventListener('input', _buscarVentaHandler);
+    }
     
     // Actualizar precios del carrito al cambiar tipo de cliente
     const tipoClienteSelect = document.getElementById('tipo-cliente');
     if (tipoClienteSelect) {
-        tipoClienteSelect.addEventListener('change', (e) => {
-            window.tipoClienteActual = e.target.value;
-            actualizarPreciosCarrito(e.target.value);
-            const buscarInput = document.getElementById('buscar-producto-venta');
+        if (_tipoClienteHandler) tipoClienteSelect.removeEventListener('change', _tipoClienteHandler);
+        _tipoClienteHandler = (e) => {
+            const nuevoValor = e.target.value;
+            if (window.tipoClienteActual === nuevoValor) return;
+            window.tipoClienteActual = nuevoValor;
+            actualizarPreciosCarrito(nuevoValor);
             if (buscarInput && buscarInput.value.trim()) {
                 buscarProducto();
             }
-        });
+        };
+        tipoClienteSelect.addEventListener('change', _tipoClienteHandler);
     }
     
     // Permitir agregar con Enter en el buscador
-    document.getElementById('buscar-producto-venta').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            const termino = e.target.value.toLowerCase();
-            const producto = productos.find(p => 
-                p.codigo.toLowerCase() === termino || 
-                p.nombre.toLowerCase() === termino
-            );
-            if (producto) {
-                agregarAlCarrito(producto);
-                regresarBusqueda();
+    if (buscarInput) {
+        if (_enterHandler) buscarInput.removeEventListener('keypress', _enterHandler);
+        _enterHandler = (e) => {
+            if (e.key === 'Enter') {
+                const termino = e.target.value.toLowerCase();
+                const producto = productos.find(p => 
+                    p.codigo.toLowerCase() === termino || 
+                    p.nombre.toLowerCase() === termino
+                );
+                if (producto) {
+                    agregarAlCarrito(producto);
+                    regresarBusqueda();
+                }
             }
-        }
-    });
+        };
+        buscarInput.addEventListener('keypress', _enterHandler);
+    }
 });
 
 // Regresar / limpiar búsqueda

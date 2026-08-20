@@ -4,6 +4,9 @@ let todosProductos = [];
 let productosVisibles = [];
 let currentTab = 'bodega';
 let agregarStockProductoId = null;
+let _buscarInventarioHandler = null;
+let _catInventarioHandler = null;
+let _estInventarioHandler = null;
 
 async function loadProductos() {
     try {
@@ -529,9 +532,26 @@ document.addEventListener('DOMContentLoaded', () => {
         btnAgregarStock.addEventListener('click', ejecutarAgregarStock);
     }
 
-    document.getElementById('buscar-producto').addEventListener('input', aplicarFiltros);
-    document.getElementById('filtro-categoria').addEventListener('change', aplicarFiltros);
-    document.getElementById('filtro-estado').addEventListener('change', aplicarFiltros);
+    const buscarInput = document.getElementById('buscar-producto');
+    if (buscarInput) {
+        if (_buscarInventarioHandler) buscarInput.removeEventListener('input', _buscarInventarioHandler);
+        _buscarInventarioHandler = debounce(aplicarFiltros, 250);
+        buscarInput.addEventListener('input', _buscarInventarioHandler);
+    }
+
+    const catSelect = document.getElementById('filtro-categoria');
+    if (catSelect) {
+        if (_catInventarioHandler) catSelect.removeEventListener('change', _catInventarioHandler);
+        _catInventarioHandler = aplicarFiltros;
+        catSelect.addEventListener('change', _catInventarioHandler);
+    }
+
+    const estSelect = document.getElementById('filtro-estado');
+    if (estSelect) {
+        if (_estInventarioHandler) estSelect.removeEventListener('change', _estInventarioHandler);
+        _estInventarioHandler = aplicarFiltros;
+        estSelect.addEventListener('change', _estInventarioHandler);
+    }
 });
 
 function imprimirInventario() {

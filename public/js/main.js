@@ -29,6 +29,14 @@ async function apiFetch(url, options = {}) {
   return response;
 }
 
+function debounce(fn, delay) {
+  let timer;
+  return function(...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
 window.ensureArray = function(data, key) {
   if (Array.isArray(data)) return data;
   if (data && typeof data === 'object') {

@@ -2,6 +2,7 @@
 
 let productosCatalogo = [];
 let carritoEntrada = [];
+let _buscarEntradaHandler = null;
 
 function switchEntradaTab(tab) {
     const btnSurtir = document.getElementById('tab-btn-surtir');
@@ -508,7 +509,12 @@ document.addEventListener('DOMContentLoaded', () => {
     loadEntradasRecientes();
     loadProveedores();
 
-    document.getElementById('buscar-producto-entrada').addEventListener('input', buscarProducto);
+    const buscarInput = document.getElementById('buscar-producto-entrada');
+    if (buscarInput) {
+        if (_buscarEntradaHandler) buscarInput.removeEventListener('input', _buscarEntradaHandler);
+        _buscarEntradaHandler = debounce(buscarProducto, 250);
+        buscarInput.addEventListener('input', _buscarEntradaHandler);
+    }
 
     const selectEntrada = document.getElementById('proveedor-entrada');
     if (selectEntrada) {
